@@ -26,7 +26,7 @@ from app.services.approval_service import (
     ApprovalService,
     approval_service,
 )
-from app.tools.registry import ToolRegistry, tool_registry
+from app.tools import ToolRegistry, tool_registry
 
 
 SYSTEM_ORCHESTRATOR_PROMPT = """You are the central Orchestrator of Personal AI OS, a local-first, privacy-respecting personal AI platform.

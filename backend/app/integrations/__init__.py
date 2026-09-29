@@ -11,7 +11,9 @@ from app.integrations.ollama_provider import (
     OllamaProvider,
     OllamaProviderError,
     OllamaConnectionError,
+    OllamaTimeoutError,
     OllamaModelNotFoundError,
+    OllamaResponseError,
 )
 
 __all__ = [
@@ -23,5 +25,7 @@ __all__ = [
     "OllamaProvider",
     "OllamaProviderError",
     "OllamaConnectionError",
+    "OllamaTimeoutError",
     "OllamaModelNotFoundError",
+    "OllamaResponseError",
 ]
