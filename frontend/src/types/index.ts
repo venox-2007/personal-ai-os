@@ -1,0 +1,68 @@
+export type ActivityType =
+  | 'planning'
+  | 'agent_selected'
+  | 'tool_started'
+  | 'tool_completed'
+  | 'reasoning'
+  | 'status_message'
+  | 'approval_required'
+  | 'error'
+  | 'completed';
+
+export type ActivityStatus =
+  | 'pending'
+  | 'running'
+  | 'success'
+  | 'warning'
+  | 'failed'
+  | 'waiting_approval';
+
+export interface AgentActivityEvent {
+  id: string;
+  timestamp: string;
+  agent: string;
+  activity_type: ActivityType;
+  status: ActivityStatus;
+  action: string;
+  description?: string | null;
+  metadata?: Record<string, any>;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: string;
+  activities?: AgentActivityEvent[];
+}
+
+export type PermissionLevel = 0 | 1 | 2 | 3;
+
+export interface ToolMetadata {
+  name: string;
+  description: string;
+  permission_level: PermissionLevel;
+  permission_label: string;
+  requires_approval: boolean;
+  parameters_schema: Record<string, any>;
+}
+
+export interface AgentMetadata {
+  name: string;
+  description: string;
+  tools: string[];
+}
+
+export interface HealthCheckData {
+  status: string;
+  app: string;
+  version: string;
+  environment: string;
+  components: {
+    api?: { status: string; details: Record<string, any> };
+    database?: { status: string; details: Record<string, any> };
+    llm_provider?: { status: string; details: Record<string, any> };
+    agents?: { status: string; details: Record<string, any> };
+    tools?: { status: string; details: Record<string, any> };
+  };
+}

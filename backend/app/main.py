@@ -1,0 +1,93 @@
+"""FastAPI application entry point for Personal AI OS."""
+
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.core.config import settings
+from app.core.logging import logger
+from app.database.session import init_db
+from app.api.router import api_router
+from app.api.routes.health import get_health
+from app.agents.registry import agent_registry
+from app.agents.base import BaseAgent, AgentRunResult
+
+
+class OrchestratorAgentRegistration(BaseAgent):
+    """Core orchestrator registration entry."""
+
+    name: str = "orchestrator"
+    description: str = (
+        "Central coordinator responsible for intent decomposition, memory retrieval, "
+        "permission verification, and routing tasks to specialized agents."
+    )
+    tools: list = []
+
+    async def run(self, task: str, context=None) -> AgentRunResult:
+        return AgentRunResult(
+            agent_name=self.name,
+            task=task,
+            success=True,
+            summary="Orchestrator executed baseline evaluation.",
+        )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Lifespan context manager for startup and shutdown events."""
+    logger.info(f"Starting {settings.APP_NAME} in {settings.APP_ENV} mode...")
+
+    # Initialize SQLite database tables
+    try:
+        init_db()
+        logger.info("Database schema initialized successfully.")
+    except Exception as e:
+        logger.error(f"Failed to initialize database schema: {e}", exc_info=True)
+
+    # Register default core orchestrator agent
+    if not agent_registry.get("orchestrator"):
+        agent_registry.register(OrchestratorAgentRegistration())
+        logger.info("Registered Core Orchestrator Agent.")
+
+    yield
+
+    logger.info(f"Shutting down {settings.APP_NAME}...")
+
+
+def create_application() -> FastAPI:
+    """Builds and configures the FastAPI application instance."""
+    application = FastAPI(
+        title=settings.APP_NAME,
+        version="0.1.0",
+        description="Local-first, agentic personal AI operating platform.",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        lifespan=lifespan,
+    )
+
+    # Configure CORS for Vite React frontend
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Direct GET /health endpoint for root inspection
+    application.add_api_route(
+        "/health",
+        get_health,
+        methods=["GET"],
+        tags=["Health"],
+        summary="Application health check",
+    )
+
+    # Mount API routes under /api
+    application.include_router(api_router, prefix="/api")
+
+    return application
+
+
+app = create_application()
