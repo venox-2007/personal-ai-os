@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Send, Bot, User, CornerDownLeft, Sparkles, Terminal, Wrench, ShieldAlert } from "lucide-react";
+import { ApprovalCard } from "./ApprovalCard";
 import { ChatMessage } from "../types";
 import { formatTime } from "../lib/utils";
 
@@ -8,6 +9,8 @@ interface ChatAreaProps {
   isLoading: boolean;
   onSendMessage: (text: string) => void;
   onSelectMessageActivities?: (msg: ChatMessage) => void;
+  onApproveAction?: (approvalId: string, reason?: string) => Promise<void>;
+  onRejectAction?: (approvalId: string, reason?: string) => Promise<void>;
 }
 
 export const ChatArea: React.FC<ChatAreaProps> = ({
@@ -15,6 +18,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
   isLoading,
   onSendMessage,
   onSelectMessageActivities,
+  onApproveAction,
+  onRejectAction,
 }) => {
   const [inputText, setInputText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -96,6 +101,14 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                   >
                     {msg.content}
                   </div>
+
+                  {msg.approval && (
+                    <ApprovalCard
+                      approval={msg.approval}
+                      onApprove={onApproveAction || (async () => {})}
+                      onReject={onRejectAction || (async () => {})}
+                    />
+                  )}
 
                   <div className="flex flex-wrap items-center gap-2 px-1 text-[11px] text-slate-400">
                     <span>{formatTime(msg.timestamp)}</span>

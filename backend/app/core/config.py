@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     # Human-in-the-loop permission requirements
     REQUIRE_APPROVAL_FOR_LEVEL_2: bool = True
     REQUIRE_APPROVAL_FOR_LEVEL_3: bool = True
+    APPROVAL_EXPIRY_SECONDS: int = 300
 
     # Tool Execution Loop
     MAX_TOOL_ITERATIONS: int = 8

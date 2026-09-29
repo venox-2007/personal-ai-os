@@ -109,14 +109,19 @@ class ApprovalRequestModel(Base):
     __tablename__ = "approvals"
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    run_id = Column(String(36), ForeignKey("agent_runs.id", ondelete="CASCADE"), nullable=False)
+    run_id = Column(String(36), ForeignKey("agent_runs.id", ondelete="CASCADE"), nullable=True)
+    conversation_id = Column(String(36), ForeignKey("conversations.id", ondelete="SET NULL"), nullable=True)
     tool_name = Column(String(64), nullable=False)
     permission_level = Column(Integer, nullable=False)
     action_description = Column(Text, nullable=False)
-    status = Column(String(32), nullable=False, default="pending")  # pending, approved, rejected
+    arguments_json = Column(Text, nullable=True)
+    status = Column(String(32), nullable=False, default="pending")  # pending, approved, rejected, expired, cancelled
     requested_at = Column(DateTime, default=utc_now, nullable=False)
+    expires_at = Column(DateTime, nullable=True)
     decided_at = Column(DateTime, nullable=True)
     decided_by = Column(String(64), nullable=True)
+    resolution_reason = Column(Text, nullable=True)
+    execution_context_json = Column(Text, nullable=True)
 
     agent_run = relationship("AgentRunModel", back_populates="approvals")
 

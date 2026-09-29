@@ -4,7 +4,7 @@ import { HomePage } from "./pages/HomePage";
 import { PlaceholderView } from "./pages/PlaceholderView";
 import { NavItem } from "./components/Sidebar";
 import { ChatMessage, AgentActivityEvent, HealthCheckData } from "./types";
-import { checkHealth, sendChatMessage } from "./api/client";
+import { checkHealth, sendChatMessage, approveAction, rejectAction } from "./api/client";
 
 export function App() {
   const [activeTab, setActiveTab] = useState<NavItem>("home");
@@ -54,6 +54,7 @@ export function App() {
         activities: res.activities,
         tool_calls: res.tool_calls,
         status: res.status,
+        approval: res.approval,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
@@ -72,6 +73,86 @@ export function App() {
     }
   };
 
+  const handleApproveAction = async (approvalId: string, reason?: string) => {
+    try {
+      const res = await approveAction(approvalId, reason);
+
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.approval && msg.approval.id === approvalId) {
+            return {
+              ...msg,
+              approval: {
+                ...msg.approval,
+                status: "approved",
+                resolved_at: new Date().toISOString(),
+              },
+            };
+          }
+          return msg;
+        })
+      );
+
+      const resumeMsg: ChatMessage = {
+        id: `asst_${Date.now()}`,
+        role: "assistant",
+        content: res.response,
+        timestamp: new Date().toISOString(),
+        activities: res.activities,
+        tool_calls: res.tool_calls,
+        status: "completed",
+      };
+      setMessages((prev) => [...prev, resumeMsg]);
+
+      if (res.activities && res.activities.length > 0) {
+        setActivities((prev) => [...res.activities, ...prev]);
+      }
+    } catch (err: any) {
+      console.error("Failed to approve action:", err);
+      throw err;
+    }
+  };
+
+  const handleRejectAction = async (approvalId: string, reason?: string) => {
+    try {
+      const res = await rejectAction(approvalId, reason);
+
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.approval && msg.approval.id === approvalId) {
+            return {
+              ...msg,
+              approval: {
+                ...msg.approval,
+                status: "rejected",
+                resolved_at: new Date().toISOString(),
+              },
+            };
+          }
+          return msg;
+        })
+      );
+
+      const rejectMsg: ChatMessage = {
+        id: `asst_${Date.now()}`,
+        role: "assistant",
+        content: res.response,
+        timestamp: new Date().toISOString(),
+        activities: res.activities,
+        tool_calls: res.tool_calls,
+        status: "rejected",
+      };
+      setMessages((prev) => [...prev, rejectMsg]);
+
+      if (res.activities && res.activities.length > 0) {
+        setActivities((prev) => [...res.activities, ...prev]);
+      }
+    } catch (err: any) {
+      console.error("Failed to reject action:", err);
+      throw err;
+    }
+  };
+
   const handleSelectMessageActivities = (msg: ChatMessage) => {
     if (msg.activities && msg.activities.length > 0) {
       setActivities(msg.activities);
@@ -87,6 +168,8 @@ export function App() {
           isLoading={isLoading}
           onSendMessage={handleSendMessage}
           onSelectMessageActivities={handleSelectMessageActivities}
+          onApproveAction={handleApproveAction}
+          onRejectAction={handleRejectAction}
         />
       ) : (
         <PlaceholderView tab={activeTab} />

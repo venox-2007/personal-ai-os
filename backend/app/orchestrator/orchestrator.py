@@ -1,8 +1,9 @@
-"""Central Orchestrator Agent coordinating multi-step planning, tool calling, and activity logging."""
+"""Central Orchestrator Agent coordinating multi-step planning, tool calling, and human-in-the-loop approvals."""
 
 import json
 from typing import Any, Dict, List, Optional, Tuple
 import uuid
+
 from app.agents.activity import (
     AgentActivityEvent,
     ActivityType,
@@ -20,7 +21,11 @@ from app.integrations.llm_provider import (
 )
 from app.integrations.ollama_provider import OllamaProvider
 from app.memory.storage import UnifiedMemoryManager, memory_manager
-from app.permissions.models import PermissionContext
+from app.permissions.models import PermissionContext, ApprovalRequest
+from app.services.approval_service import (
+    ApprovalService,
+    approval_service,
+)
 from app.tools.registry import ToolRegistry, tool_registry
 
 
@@ -36,7 +41,7 @@ Guidelines:
 
 
 class Orchestrator:
-    """Central Orchestrator Agent executing the agentic tool-calling lifecycle."""
+    """Central Orchestrator Agent executing the agentic tool-calling lifecycle with HITL approval traps."""
 
     def __init__(
         self,
@@ -44,6 +49,7 @@ class Orchestrator:
         tools: Optional[ToolRegistry] = None,
         memory: Optional[UnifiedMemoryManager] = None,
         llm_provider: Optional[BaseLLMProvider] = None,
+        approval_svc: Optional[ApprovalService] = None,
         permission_context: Optional[PermissionContext] = None,
         max_tool_iterations: Optional[int] = None,
     ) -> None:
@@ -51,6 +57,7 @@ class Orchestrator:
         self.tools = tools or tool_registry
         self.memory = memory or memory_manager
         self.llm = llm_provider or OllamaProvider()
+        self.approval_service = approval_svc or approval_service
         self.permission_context = permission_context or PermissionContext(
             require_level_2_approval=settings.REQUIRE_APPROVAL_FOR_LEVEL_2,
             require_level_3_approval=settings.REQUIRE_APPROVAL_FOR_LEVEL_3,
@@ -61,7 +68,7 @@ class Orchestrator:
         self,
         message: str,
         conversation_id: Optional[str] = None,
-    ) -> Tuple[str, str, List[AgentActivityEvent], List[Dict[str, Any]], str]:
+    ) -> Tuple[str, str, List[AgentActivityEvent], List[Dict[str, Any]], str, Optional[Dict[str, Any]]]:
         """Processes an incoming user message through the multi-step tool-calling agent loop.
 
         Returns:
@@ -71,6 +78,7 @@ class Orchestrator:
             - activities (List[AgentActivityEvent])
             - executed_tool_calls (List[Dict[str, Any]])
             - status (str: "completed", "waiting_approval", or "error")
+            - approval_dict (Optional[Dict[str, Any]])
         """
         conv_id = conversation_id or str(uuid.uuid4())
         activities: List[AgentActivityEvent] = []
@@ -113,7 +121,7 @@ class Orchestrator:
                 f"The Personal AI OS architecture remains healthy and ready to process requests once the engine starts."
             )
             await self.memory.conversation.add_message(conv_id, "assistant", response_text)
-            return conv_id, response_text, activities, executed_tool_calls, "error"
+            return conv_id, response_text, activities, executed_tool_calls, "error", None
 
         if model_status == ModelAvailabilityStatus.MODEL_NOT_FOUND:
             activities.append(
@@ -132,7 +140,7 @@ class Orchestrator:
                 f"```bash\nollama pull {settings.OLLAMA_MODEL}\n```"
             )
             await self.memory.conversation.add_message(conv_id, "assistant", response_text)
-            return conv_id, response_text, activities, executed_tool_calls, "error"
+            return conv_id, response_text, activities, executed_tool_calls, "error", None
 
         # Step 2: Build Context & Messages History
         history = await self.memory.conversation.get_messages(conv_id, limit=10)
@@ -190,7 +198,7 @@ class Orchestrator:
                 )
                 err_text = f"An error occurred while communicating with the LLM engine: {str(e)}"
                 await self.memory.conversation.add_message(conv_id, "assistant", err_text)
-                return conv_id, err_text, activities, executed_tool_calls, "error"
+                return conv_id, err_text, activities, executed_tool_calls, "error", None
 
             # Case A: Model responded with normal text without tool requests
             if not llm_response.has_tool_calls:
@@ -205,10 +213,9 @@ class Orchestrator:
                     )
                 )
                 await self.memory.conversation.add_message(conv_id, "assistant", final_text)
-                return conv_id, final_text, activities, executed_tool_calls, "completed"
+                return conv_id, final_text, activities, executed_tool_calls, "completed", None
 
             # Case B: Model requested one or more tool calls
-            # Append assistant message with tool calls to context
             messages.append(
                 LLMMessage(
                     role="assistant",
@@ -277,6 +284,22 @@ class Orchestrator:
 
                 # Check Permission Level & Approval requirements
                 if self.permission_context.requires_approval(tool.permission_level):
+                    # Create persistent ApprovalRequest
+                    approval_req = self.approval_service.create_request(
+                        tool_name=tool.name,
+                        tool_description=tool.description,
+                        permission_level=tool.permission_level,
+                        arguments=tc.arguments,
+                        action_description=f"Execute {tool.name} with arguments: {list(tc.arguments.keys())}",
+                        conversation_id=conv_id,
+                        execution_context={
+                            "messages": [m.to_provider_dict() for m in messages],
+                            "tc": tc.model_dump(),
+                            "executed_tool_calls": executed_tool_calls,
+                            "iteration": iteration,
+                        },
+                    )
+
                     activities.append(
                         AgentActivityEvent(
                             agent="Orchestrator",
@@ -288,6 +311,7 @@ class Orchestrator:
                                 f"(Level {tool.permission_level.value}). Awaiting explicit user confirmation."
                             ),
                             metadata={
+                                "approval_id": approval_req.id,
                                 "tool_name": tool.name,
                                 "permission_level": tool.permission_level.value,
                                 "arguments": tc.arguments,
@@ -298,12 +322,12 @@ class Orchestrator:
                         f"🛡️ **Action Requires Confirmation**\n\n"
                         f"The requested action `{tool.name}` is classified as **{tool.permission_level.label}** "
                         f"(Level {tool.permission_level.value}).\n\n"
-                        f"Execution has been safely paused in accordance with Personal AI OS safety protocols."
+                        f"Please approve or reject this action using the authorization card below."
                     )
                     await self.memory.conversation.add_message(conv_id, "assistant", waiting_text)
-                    return conv_id, waiting_text, activities, executed_tool_calls, "waiting_approval"
+                    return conv_id, waiting_text, activities, executed_tool_calls, "waiting_approval", approval_req.to_dict()
 
-                # Execute tool (Level 0 / Level 1 without approval)
+                # Execute tool (Level 0 / Level 1 without approval requirement)
                 activities.append(
                     AgentActivityEvent(
                         agent="Orchestrator",
@@ -399,7 +423,222 @@ class Orchestrator:
             f"{self.max_tool_iterations} tool execution iterations."
         )
         await self.memory.conversation.add_message(conv_id, "assistant", limit_text)
-        return conv_id, limit_text, activities, executed_tool_calls, "error"
+        return conv_id, limit_text, activities, executed_tool_calls, "error", None
+
+    async def resolve_and_resume(
+        self,
+        approval_id: str,
+        approved: bool,
+        reason: Optional[str] = None,
+        decided_by: str = "user",
+    ) -> Tuple[str, str, List[AgentActivityEvent], List[Dict[str, Any]], str, ApprovalRequest]:
+        """Resumes interrupted orchestrator execution following a human approval decision.
+
+        If approved:
+            Authorizes and executes the previously paused tool, feeds result to LLM,
+            and produces the final synthesized response.
+        If rejected:
+            Aborts tool execution, updates approval state, and returns a graceful rejection response.
+
+        Returns:
+            Tuple of:
+            - conversation_id (str)
+            - final_response (str)
+            - activities (List[AgentActivityEvent])
+            - executed_tool_calls (List[Dict[str, Any]])
+            - status (str: "completed" or "rejected")
+            - approval_request (ApprovalRequest)
+        """
+        activities: List[AgentActivityEvent] = []
+        executed_tool_calls: List[Dict[str, Any]] = []
+
+        if not approved:
+            # Rejection flow: never execute tool!
+            req = self.approval_service.reject_request(approval_id, reason=reason, decided_by=decided_by)
+            conv_id = req.conversation_id or str(uuid.uuid4())
+
+            activities.append(
+                AgentActivityEvent(
+                    agent="Orchestrator",
+                    activity_type=ActivityType.STATUS_MESSAGE,
+                    status=ActivityStatus.SUCCESS,
+                    action=f"User rejected action '{req.tool_name}'",
+                    description=reason or "Authorization declined by user.",
+                )
+            )
+
+            activities.append(
+                AgentActivityEvent(
+                    agent="Orchestrator",
+                    activity_type=ActivityType.COMPLETED,
+                    status=ActivityStatus.SUCCESS,
+                    action="Execution safely terminated",
+                    description=f"Tool '{req.tool_name}' was not executed.",
+                )
+            )
+
+            rejection_text = (
+                f"I didn't execute `{req.tool_name}` because you rejected the authorization request."
+                + (f" (Reason: {reason})" if reason else "")
+            )
+            await self.memory.conversation.add_message(conv_id, "assistant", rejection_text)
+            return conv_id, rejection_text, activities, executed_tool_calls, "rejected", req
+
+        # Approval flow: authorize and execute
+        req = self.approval_service.approve_request(approval_id, reason=reason, decided_by=decided_by)
+        conv_id = req.conversation_id or str(uuid.uuid4())
+
+        activities.append(
+            AgentActivityEvent(
+                agent="Orchestrator",
+                activity_type=ActivityType.STATUS_MESSAGE,
+                status=ActivityStatus.SUCCESS,
+                action=f"User approved action '{req.tool_name}'",
+                description=reason or "Human authorization confirmed.",
+            )
+        )
+
+        tool = self.tools.get(req.tool_name)
+        if not tool:
+            err_msg = f"Approved tool '{req.tool_name}' is no longer registered in the system."
+            activities.append(
+                AgentActivityEvent(
+                    agent="Orchestrator",
+                    activity_type=ActivityType.ERROR,
+                    status=ActivityStatus.FAILED,
+                    action="Tool not found",
+                    description=err_msg,
+                )
+            )
+            return conv_id, err_msg, activities, executed_tool_calls, "error", req
+
+        # Security double-check: verify tool matches approval
+        if tool.name != req.tool_name:
+            err_msg = f"Security mismatch: Approval tool '{req.tool_name}' does not match requested tool '{tool.name}'."
+            activities.append(
+                AgentActivityEvent(
+                    agent="Orchestrator",
+                    activity_type=ActivityType.ERROR,
+                    status=ActivityStatus.FAILED,
+                    action="Security validation failed",
+                    description=err_msg,
+                )
+            )
+            return conv_id, err_msg, activities, executed_tool_calls, "error", req
+
+        # Execute approved tool
+        activities.append(
+            AgentActivityEvent(
+                agent="Orchestrator",
+                activity_type=ActivityType.TOOL_STARTED,
+                status=ActivityStatus.RUNNING,
+                action=f"Executing approved tool '{tool.name}'",
+                description=f"Authorization confirmed. Invoking action with arguments: {list(req.arguments.keys())}",
+            )
+        )
+
+        try:
+            tool_result = await tool.execute(**req.arguments)
+        except Exception as e:
+            logger.error(f"Error during execution of approved tool '{tool.name}': {e}", exc_info=True)
+            activities.append(
+                AgentActivityEvent(
+                    agent="Orchestrator",
+                    activity_type=ActivityType.ERROR,
+                    status=ActivityStatus.FAILED,
+                    action=f"Error executing approved '{tool.name}'",
+                    description=str(e),
+                )
+            )
+            err_text = f"Tool '{tool.name}' failed during execution: {str(e)}"
+            return conv_id, err_text, activities, executed_tool_calls, "error", req
+
+        if not tool_result.success:
+            activities.append(
+                AgentActivityEvent(
+                    agent="Orchestrator",
+                    activity_type=ActivityType.ERROR,
+                    status=ActivityStatus.FAILED,
+                    action=f"Approved tool '{tool.name}' reported failure",
+                    description=tool_result.error or "Unknown error",
+                )
+            )
+            payload = {"error": tool_result.error or "Tool reported failure."}
+        else:
+            activities.append(
+                AgentActivityEvent(
+                    agent="Orchestrator",
+                    activity_type=ActivityType.TOOL_COMPLETED,
+                    status=ActivityStatus.SUCCESS,
+                    action=f"Completed authorized tool '{tool.name}'",
+                    description="Execution output captured successfully.",
+                )
+            )
+            payload = tool_result.output
+
+        executed_tool_calls.append({
+            "name": tool.name,
+            "arguments": req.arguments,
+            "success": tool_result.success,
+            "output": tool_result.output,
+        })
+
+        # Reconstruct preserved messages context to continue LLM generation
+        context_data = req.execution_context or {}
+        raw_msgs = context_data.get("messages", [])
+        tc_dict = context_data.get("tc", {})
+
+        messages: List[LLMMessage] = []
+        if raw_msgs:
+            for rm in raw_msgs:
+                tcs = [ToolCall(**tc_item["function"]) for tc_item in rm.get("tool_calls", [])] if rm.get("tool_calls") else None
+                messages.append(
+                    LLMMessage(
+                        role=rm.get("role", "user"),
+                        content=rm.get("content", ""),
+                        tool_calls=tcs,
+                        tool_call_id=rm.get("tool_call_id"),
+                        name=rm.get("name"),
+                    )
+                )
+        else:
+            messages = [
+                LLMMessage(role="system", content=SYSTEM_ORCHESTRATOR_PROMPT),
+                LLMMessage(role="user", content=f"Execute action {req.tool_name}"),
+            ]
+
+        # Append tool observation
+        messages.append(
+            LLMMessage(
+                role="tool",
+                name=tool.name,
+                tool_call_id=tc_dict.get("id"),
+                content=json.dumps(payload) if not isinstance(payload, str) else payload,
+            )
+        )
+
+        # Query LLM for final synthesized response
+        try:
+            all_tools = self.tools.list_tools()
+            tool_definitions = [t.to_llm_tool_definition() for t in all_tools]
+            llm_response = await self.llm.chat(messages=messages, tools=tool_definitions)
+            final_response = llm_response.content or f"Action '{tool.name}' was executed successfully."
+        except Exception as e:
+            logger.warning(f"Failed to get final LLM response after tool execution: {e}")
+            final_response = f"Action '{tool.name}' executed successfully with output: {payload}"
+
+        activities.append(
+            AgentActivityEvent(
+                agent="Orchestrator",
+                activity_type=ActivityType.COMPLETED,
+                status=ActivityStatus.SUCCESS,
+                action="Completed authorized workflow",
+                description="Synthesized final response based on observation results.",
+            )
+        )
+
+        await self.memory.conversation.add_message(conv_id, "assistant", final_response)
+        return conv_id, final_response, activities, executed_tool_calls, "completed", req
 
 
 # Global default instance

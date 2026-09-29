@@ -29,7 +29,7 @@ class DummyTestLLM(BaseLLMProvider):
 async def test_orchestrator_pipeline_flow():
     mock_llm = DummyTestLLM()
     orchestrator = Orchestrator(llm_provider=mock_llm)
-    conv_id, response, activities, tool_calls, status = await orchestrator.handle_message(
+    conv_id, response, activities, tool_calls, status, approval = await orchestrator.handle_message(
         message="What are my top tasks today?"
     )
 

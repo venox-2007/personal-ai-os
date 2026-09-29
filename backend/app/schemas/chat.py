@@ -25,5 +25,12 @@ class ChatResponse(BaseModel):
     response: str
     activities: List[AgentActivityEvent] = Field(default_factory=list)
     tool_calls: List[Dict[str, Any]] = Field(default_factory=list)
-    status: str = Field(default="completed", description="Status: completed, waiting_approval, or error")
+    status: str = Field(
+        default="completed",
+        description="Status: completed, waiting_approval, rejected, or error",
+    )
+    approval: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="Pending approval details if status is waiting_approval",
+    )
     metadata: Dict[str, Any] = Field(default_factory=dict)

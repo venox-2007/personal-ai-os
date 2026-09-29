@@ -125,7 +125,7 @@ async def test_direct_llm_response_without_tool_use(clean_registry):
         ]
     )
     orch = Orchestrator(tools=clean_registry, llm_provider=mock_llm)
-    conv_id, response, activities, tools_executed, status = await orch.handle_message(
+    conv_id, response, activities, tools_executed, status, approval = await orch.handle_message(
         message="What can you do?"
     )
 
@@ -161,7 +161,7 @@ async def test_llm_selecting_get_system_info_and_execution(clean_registry):
         ]
     )
     orch = Orchestrator(tools=clean_registry, llm_provider=mock_llm)
-    conv_id, response, activities, tools_executed, status = await orch.handle_message(
+    conv_id, response, activities, tools_executed, status, approval = await orch.handle_message(
         message="Check system status please"
     )
 
@@ -210,7 +210,7 @@ async def test_unknown_tool_call_handling(clean_registry):
         ]
     )
     orch = Orchestrator(tools=clean_registry, llm_provider=mock_llm)
-    conv_id, response, activities, tools_executed, status = await orch.handle_message(
+    conv_id, response, activities, tools_executed, status, approval = await orch.handle_message(
         message="Run mystery tool"
     )
 
@@ -245,7 +245,7 @@ async def test_invalid_tool_arguments_validation(clean_registry):
         ]
     )
     orch = Orchestrator(tools=clean_registry, llm_provider=mock_llm)
-    conv_id, response, activities, tools_executed, status = await orch.handle_message(
+    conv_id, response, activities, tools_executed, status, approval = await orch.handle_message(
         message="Execute parameterized tool without arguments"
     )
 
@@ -271,7 +271,7 @@ async def test_approval_required_behavior(clean_registry):
         ]
     )
     orch = Orchestrator(tools=clean_registry, llm_provider=mock_llm)
-    conv_id, response, activities, tools_executed, status = await orch.handle_message(
+    conv_id, response, activities, tools_executed, status, approval = await orch.handle_message(
         message="Trigger external payload action"
     )
 
@@ -302,7 +302,7 @@ async def test_maximum_tool_iterations_limit(clean_registry):
         llm_provider=mock_llm,
         max_tool_iterations=3,
     )
-    conv_id, response, activities, tools_executed, status = await orch.handle_message(
+    conv_id, response, activities, tools_executed, status, approval = await orch.handle_message(
         message="Keep looping"
     )
 
@@ -320,7 +320,7 @@ async def test_ollama_unavailable_handling(clean_registry):
         model_status=ModelAvailabilityStatus.PROVIDER_UNAVAILABLE
     )
     orch = Orchestrator(tools=clean_registry, llm_provider=mock_llm)
-    conv_id, response, activities, tools_executed, status = await orch.handle_message(
+    conv_id, response, activities, tools_executed, status, approval = await orch.handle_message(
         message="Hello while offline"
     )
 

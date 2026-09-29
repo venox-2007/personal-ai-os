@@ -9,6 +9,8 @@ interface HomePageProps {
   isLoading: boolean;
   onSendMessage: (text: string) => void;
   onSelectMessageActivities: (msg: ChatMessage) => void;
+  onApproveAction?: (approvalId: string, reason?: string) => Promise<void>;
+  onRejectAction?: (approvalId: string, reason?: string) => Promise<void>;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
@@ -17,6 +19,8 @@ export const HomePage: React.FC<HomePageProps> = ({
   isLoading,
   onSendMessage,
   onSelectMessageActivities,
+  onApproveAction,
+  onRejectAction,
 }) => {
   return (
     <div className="flex-1 flex h-full overflow-hidden">
@@ -25,6 +29,8 @@ export const HomePage: React.FC<HomePageProps> = ({
         isLoading={isLoading}
         onSendMessage={onSendMessage}
         onSelectMessageActivities={onSelectMessageActivities}
+        onApproveAction={onApproveAction}
+        onRejectAction={onRejectAction}
       />
       <ActivityPanel activities={activities} isStreaming={isLoading} />
     </div>

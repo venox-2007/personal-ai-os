@@ -1,4 +1,4 @@
-import { AgentActivityEvent, HealthCheckData } from "../types";
+import { AgentActivityEvent, HealthCheckData, ApprovalRequestData } from "../types";
 
 export interface ChatResponsePayload {
   conversation_id: string;
@@ -6,7 +6,18 @@ export interface ChatResponsePayload {
   activities: AgentActivityEvent[];
   tool_calls?: any[];
   status?: string;
+  approval?: ApprovalRequestData;
   metadata: Record<string, any>;
+}
+
+export interface ApprovalExecutionPayload {
+  approval_id: string;
+  status: string;
+  tool_name: string;
+  response: string;
+  activities: AgentActivityEvent[];
+  tool_calls: any[];
+  conversation_id?: string;
 }
 
 export async function checkHealth(): Promise<HealthCheckData | null> {
@@ -41,6 +52,57 @@ export async function sendChatMessage(
   }
 
   return await res.json();
+}
+
+export async function approveAction(
+  approvalId: string,
+  reason?: string
+): Promise<ApprovalExecutionPayload> {
+  const res = await fetch(`/api/approvals/${approvalId}/approve`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to approve action");
+  }
+
+  return await res.json();
+}
+
+export async function rejectAction(
+  approvalId: string,
+  reason?: string
+): Promise<ApprovalExecutionPayload> {
+  const res = await fetch(`/api/approvals/${approvalId}/reject`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to reject action");
+  }
+
+  return await res.json();
+}
+
+export async function fetchApprovals(status?: string): Promise<ApprovalRequestData[]> {
+  try {
+    const url = status ? `/api/approvals?status=${status}` : "/api/approvals";
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchAgents(): Promise<any[]> {

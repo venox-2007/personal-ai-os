@@ -28,6 +28,22 @@ export interface AgentActivityEvent {
   metadata?: Record<string, any>;
 }
 
+export interface ApprovalRequestData {
+  id: string;
+  tool_name: string;
+  tool_description: string;
+  permission_level: PermissionLevel;
+  permission_label: string;
+  arguments: Record<string, any>;
+  action_description: string;
+  status: 'pending' | 'approved' | 'rejected' | 'expired' | 'cancelled';
+  created_at: string;
+  expires_at: string;
+  resolved_at?: string | null;
+  resolution_reason?: string | null;
+  conversation_id?: string | null;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
@@ -36,6 +52,7 @@ export interface ChatMessage {
   activities?: AgentActivityEvent[];
   tool_calls?: any[];
   status?: string;
+  approval?: ApprovalRequestData;
 }
 
 export type PermissionLevel = 0 | 1 | 2 | 3;

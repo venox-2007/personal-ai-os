@@ -14,6 +14,7 @@ from app.agents.registry import agent_registry
 from app.agents.base import BaseAgent, AgentRunResult
 from app.tools.registry import tool_registry
 from app.tools.system_info import SystemInfoTool
+from app.tools.demo_action import DemoActionTool
 
 
 class OrchestratorAgentRegistration(BaseAgent):
@@ -56,6 +57,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if not tool_registry.get("get_system_info"):
         tool_registry.register(SystemInfoTool())
         logger.info("Registered SystemInfoTool.")
+
+    if not tool_registry.get("request_demo_action"):
+        tool_registry.register(DemoActionTool())
+        logger.info("Registered DemoActionTool.")
 
     yield
 
