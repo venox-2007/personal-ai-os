@@ -24,4 +24,6 @@ class ChatResponse(BaseModel):
     conversation_id: str
     response: str
     activities: List[AgentActivityEvent] = Field(default_factory=list)
+    tool_calls: List[Dict[str, Any]] = Field(default_factory=list)
+    status: str = Field(default="completed", description="Status: completed, waiting_approval, or error")
     metadata: Dict[str, Any] = Field(default_factory=dict)

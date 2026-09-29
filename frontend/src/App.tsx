@@ -52,6 +52,8 @@ export function App() {
         content: res.response,
         timestamp: new Date().toISOString(),
         activities: res.activities,
+        tool_calls: res.tool_calls,
+        status: res.status,
       };
 
       setMessages((prev) => [...prev, assistantMsg]);

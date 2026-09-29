@@ -34,6 +34,8 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   activities?: AgentActivityEvent[];
+  tool_calls?: any[];
+  status?: string;
 }
 
 export type PermissionLevel = 0 | 1 | 2 | 3;

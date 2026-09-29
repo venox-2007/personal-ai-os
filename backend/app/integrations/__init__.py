@@ -1,6 +1,27 @@
 """Integrations subsystem for LLMs and external resource connectors."""
 
-from app.integrations.llm_provider import BaseLLMProvider, LLMMessage, LLMResponse
-from app.integrations.ollama_provider import OllamaProvider
+from app.integrations.llm_provider import (
+    BaseLLMProvider,
+    LLMMessage,
+    LLMResponse,
+    ToolCall,
+    ModelAvailabilityStatus,
+)
+from app.integrations.ollama_provider import (
+    OllamaProvider,
+    OllamaProviderError,
+    OllamaConnectionError,
+    OllamaModelNotFoundError,
+)
 
-__all__ = ["BaseLLMProvider", "LLMMessage", "LLMResponse", "OllamaProvider"]
+__all__ = [
+    "BaseLLMProvider",
+    "LLMMessage",
+    "LLMResponse",
+    "ToolCall",
+    "ModelAvailabilityStatus",
+    "OllamaProvider",
+    "OllamaProviderError",
+    "OllamaConnectionError",
+    "OllamaModelNotFoundError",
+]

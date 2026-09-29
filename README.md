@@ -20,12 +20,14 @@
 
 - [x] **Backend Foundation**: Modular FastAPI backend with lifespan management and SQLite database setup.
 - [x] **Core Orchestrator**: 9-step agentic lifecycle with intent planning, memory query, and observable timeline output.
-- [x] **Security & Permission Hierarchy**: Levels 0–3 defined with approval requirements and models.
+- [x] **Real Tool-Calling Loop (Phase 2A)**: Multi-step tool execution loop with dynamic schema conversion, argument validation, permission gating, loop limit guard (`MAX_TOOL_ITERATIONS=8`), and observation ingestion.
+- [x] **Safe System Inspection Tool**: `get_system_info` tool at `LEVEL_0_READ_ONLY` proving end-to-end LLM tool selection and execution.
+- [x] **Security & Permission Hierarchy**: Levels 0–3 defined with approval requirements, dynamic context evaluation, and approval-pending state traps.
 - [x] **Tool & Agent Registries**: Dynamic registration, lookup, and permission-filtered discovery.
 - [x] **5-Facet Memory Subsystem**: Conversation, Long-term, Semantic, Episodic, and Preference memory interfaces with active storage managers.
-- [x] **Provider Independence**: `BaseLLMProvider` interface and `OllamaProvider` client with graceful offline resilience.
-- [x] **Frontend Architecture**: Desktop-grade React + TypeScript + Vite + Tailwind CSS interface featuring interactive Chat, dynamic Activity Observability Panel, and status badges.
-- [x] **Automated Tests**: 100% passing pytest suite covering endpoints, permissions, tools, agents, memory, and orchestrator pipelines.
+- [x] **Provider Independence**: `BaseLLMProvider` interface and `OllamaProvider` supporting structured tool calling, chat completions, and granular model readiness detection (`online_model_ready`, `online_model_missing`, `offline_or_unreachable`).
+- [x] **Frontend Architecture**: Desktop-grade React + TypeScript + Vite + Tailwind CSS interface featuring interactive Chat, dynamic Activity Observability Panel, tool execution badges, and status indicators.
+- [x] **Deterministic Automated Tests**: 27 passing tests (100% pass rate) with complete offline mock coverage for all tool calling and error states.
 
 *Note: Future external integrations (Gmail, Calendar, Study RAG, GitHub, Research, Files) are scaffolded and planned for subsequent phases.*
 
@@ -90,6 +92,9 @@ DEFAULT_LLM_PROVIDER="ollama"
 # Security & Approval Settings
 REQUIRE_APPROVAL_FOR_LEVEL_2=true
 REQUIRE_APPROVAL_FOR_LEVEL_3=true
+
+# Agent & Tool Execution Loop Limits
+MAX_TOOL_ITERATIONS=8
 ```
 
 To create your `.env`:

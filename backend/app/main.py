@@ -12,6 +12,8 @@ from app.api.router import api_router
 from app.api.routes.health import get_health
 from app.agents.registry import agent_registry
 from app.agents.base import BaseAgent, AgentRunResult
+from app.tools.registry import tool_registry
+from app.tools.system_info import SystemInfoTool
 
 
 class OrchestratorAgentRegistration(BaseAgent):
@@ -49,6 +51,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if not agent_registry.get("orchestrator"):
         agent_registry.register(OrchestratorAgentRegistration())
         logger.info("Registered Core Orchestrator Agent.")
+
+    # Register standard initial tools
+    if not tool_registry.get("get_system_info"):
+        tool_registry.register(SystemInfoTool())
+        logger.info("Registered SystemInfoTool.")
 
     yield
 

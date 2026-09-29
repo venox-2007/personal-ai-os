@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Send, Bot, User, CornerDownLeft, Sparkles, Terminal } from "lucide-react";
+import { Send, Bot, User, CornerDownLeft, Sparkles, Terminal, Wrench, ShieldAlert } from "lucide-react";
 import { ChatMessage } from "../types";
 import { formatTime } from "../lib/utils";
 
@@ -97,16 +97,28 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                     {msg.content}
                   </div>
 
-                  <div className="flex items-center gap-2 px-1 text-[11px] text-slate-400">
+                  <div className="flex flex-wrap items-center gap-2 px-1 text-[11px] text-slate-400">
                     <span>{formatTime(msg.timestamp)}</span>
                     {!isUser && msg.activities && msg.activities.length > 0 && (
                       <button
                         onClick={() => onSelectMessageActivities?.(msg)}
-                        className="text-brand-400 hover:text-brand-300 font-mono flex items-center gap-1 bg-surface-secondary px-2 py-0.5 rounded border border-surface-border"
+                        className="text-brand-400 hover:text-brand-300 font-mono flex items-center gap-1 bg-surface-secondary px-2 py-0.5 rounded border border-surface-border transition-colors"
                       >
                         <Terminal className="w-3 h-3" />
                         <span>{msg.activities.length} steps recorded</span>
                       </button>
+                    )}
+                    {!isUser && msg.tool_calls && msg.tool_calls.length > 0 && (
+                      <div className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-mono">
+                        <Wrench className="w-3 h-3" />
+                        <span>{msg.tool_calls.map((t: any) => t.name).join(", ")}</span>
+                      </div>
+                    )}
+                    {!isUser && msg.status === "waiting_approval" && (
+                      <div className="flex items-center gap-1 text-[10px] text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded font-mono">
+                        <ShieldAlert className="w-3 h-3" />
+                        <span>Awaiting Confirmation</span>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -4,6 +4,8 @@ export interface ChatResponsePayload {
   conversation_id: string;
   response: string;
   activities: AgentActivityEvent[];
+  tool_calls?: any[];
+  status?: string;
   metadata: Record<string, any>;
 }
 

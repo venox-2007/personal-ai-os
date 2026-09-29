@@ -12,10 +12,10 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 async def chat_with_orchestrator(request: ChatRequest) -> ChatResponse:
     """Sends a user message to the central Orchestrator Agent.
 
-    Returns the orchestrator's synthesized response along with observable activity events.
+    Returns the orchestrator's synthesized response along with observable activity events and tool execution data.
     """
     try:
-        conv_id, response_text, activities = await orchestrator.handle_message(
+        conv_id, response_text, activities, tool_calls, status = await orchestrator.handle_message(
             message=request.message,
             conversation_id=request.conversation_id,
         )
@@ -23,7 +23,9 @@ async def chat_with_orchestrator(request: ChatRequest) -> ChatResponse:
             conversation_id=conv_id,
             response=response_text,
             activities=activities,
-            metadata={"source": "orchestrator_skeleton"},
+            tool_calls=tool_calls,
+            status=status,
+            metadata={"source": "orchestrator_agent"},
         )
     except Exception as e:
         logger.error(f"Error handling chat request: {e}", exc_info=True)

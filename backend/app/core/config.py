@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     REQUIRE_APPROVAL_FOR_LEVEL_2: bool = True
     REQUIRE_APPROVAL_FOR_LEVEL_3: bool = True
 
+    # Tool Execution Loop
+    MAX_TOOL_ITERATIONS: int = 8
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: Union[str, List[str]]) -> List[str]:
