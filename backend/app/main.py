@@ -15,6 +15,8 @@ from app.agents.base import BaseAgent, AgentRunResult
 from app.tools.registry import tool_registry
 from app.tools.system_info import SystemInfoTool
 from app.tools.demo_action import DemoActionTool
+from app.agents.file_agent import FileAgentRegistration
+from app.tools.local_file import FileSearchTool, FileMetadataTool, FileReadTool, FileSummarizeTool
 
 
 class OrchestratorAgentRegistration(BaseAgent):
@@ -61,6 +63,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if not tool_registry.get("request_demo_action"):
         tool_registry.register(DemoActionTool())
         logger.info("Registered DemoActionTool.")
+
+    # Register File Agent and its tools
+    if not agent_registry.get("file_agent"):
+        agent_registry.register(FileAgentRegistration())
+        logger.info("Registered File Agent.")
+    
+    for tool_cls in [FileSearchTool, FileMetadataTool, FileReadTool, FileSummarizeTool]:
+        tool = tool_cls()
+        if not tool_registry.get(tool.name):
+            tool_registry.register(tool)
+            logger.info(f"Registered {tool.name}.")
 
     yield
 

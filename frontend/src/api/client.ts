@@ -134,3 +134,42 @@ export async function fetchMemoryStats(): Promise<Record<string, any>> {
     return {};
   }
 }
+
+export async function searchFiles(directory: string, pattern: string = "*.*"): Promise<any> {
+  const res = await fetch("/api/files/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ directory, pattern }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to search files");
+  }
+  return res.json();
+}
+
+export async function getFileMetadata(file_path: string): Promise<any> {
+  const res = await fetch("/api/files/metadata", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file_path }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to get file metadata");
+  }
+  return res.json();
+}
+
+export async function readFileContent(file_path: string, start_line: number = 1, end_line?: number): Promise<any> {
+  const res = await fetch("/api/files/read", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file_path, start_line, end_line }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to read file");
+  }
+  return res.json();
+}

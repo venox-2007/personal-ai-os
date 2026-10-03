@@ -44,6 +44,10 @@ class Settings(BaseSettings):
     # Tool Execution Loop
     MAX_TOOL_ITERATIONS: int = 8
 
+    # Local File Agent Sandbox Settings
+    # Comma-separated list of allowed absolute paths.
+    FILE_AGENT_ALLOWED_ROOTS: str = ""
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: Union[str, List[str]]) -> List[str]:

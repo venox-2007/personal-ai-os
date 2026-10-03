@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AppLayout } from "./layouts/AppLayout";
 import { HomePage } from "./pages/HomePage";
 import { PlaceholderView } from "./pages/PlaceholderView";
+import { FilesView } from "./pages/FilesView";
 import { NavItem } from "./components/Sidebar";
 import { ChatMessage, AgentActivityEvent, HealthCheckData } from "./types";
 import { checkHealth, sendChatMessage, approveAction, rejectAction } from "./api/client";
@@ -171,6 +172,8 @@ export function App() {
           onApproveAction={handleApproveAction}
           onRejectAction={handleRejectAction}
         />
+      ) : activeTab === "files" ? (
+        <FilesView />
       ) : (
         <PlaceholderView tab={activeTab} />
       )}
