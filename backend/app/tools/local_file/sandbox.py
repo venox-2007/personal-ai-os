@@ -63,7 +63,7 @@ class FileSandbox:
                     
                     # Also check for obvious secrets
                     name_lower = resolved_target.name.lower()
-                    if name_lower in ['.env', 'credentials.json', 'token.json', 'client_secret.json']:
+                    if name_lower in ['.env', 'credentials.json', 'token.json', 'client_secret.json', 'id_rsa'] or name_lower.endswith('.pem'):
                         logger.warning(f"Blocked access to potential secrets file: {resolved_target}")
                         return False
                         

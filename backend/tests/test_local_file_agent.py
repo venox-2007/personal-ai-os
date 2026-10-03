@@ -42,18 +42,57 @@ async def test_sandbox_allowed_paths(temp_sandbox):
     assert test_sandbox.is_path_allowed(temp_path / "test1.txt") == True
     assert test_sandbox.is_path_allowed(temp_path / "subdir" / "test3.py") == True
     
-    # Path traversal attempt
+    # Path traversal attempt (resolves to valid if within root)
     traversal_path = temp_path / "subdir" / ".." / "test1.txt"
-    assert test_sandbox.is_path_allowed(traversal_path) == True # Resolves safely
+    assert test_sandbox.is_path_allowed(traversal_path) == True
     
-    # Escape attempt
+    # Absolute path escape outside allowed roots
     escape_path = temp_path / ".."
     assert test_sandbox.is_path_allowed(escape_path) == False
+    
+    # Windows drive escape
+    assert test_sandbox.is_path_allowed("C:\\Windows\\System32") == False
+    
+    # Symlink escape
+    symlink_path = temp_path / "escape_link"
+    try:
+        os.symlink(str(temp_path.parent), str(symlink_path))
+        # Sandbox resolves symlinks fully. It should detect it points outside.
+        assert test_sandbox.is_path_allowed(symlink_path) == False
+        assert test_sandbox.is_path_allowed(symlink_path / "something") == False
+    except OSError:
+        # Symlinks might require admin privileges on Windows, so we skip if it fails to create
+        pass
 
 @pytest.mark.asyncio
 async def test_sandbox_blocks_secrets(temp_sandbox):
     temp_path, test_sandbox = temp_sandbox
+    
+    # Test typical secrets
+    (temp_path / ".env").write_text("secret", encoding="utf-8")
+    (temp_path / "credentials.json").write_text("secret", encoding="utf-8")
+    (temp_path / "token.json").write_text("secret", encoding="utf-8")
+    (temp_path / "id_rsa").write_text("secret", encoding="utf-8")
+    (temp_path / "client_secret.json").write_text("secret", encoding="utf-8")
+    
     assert test_sandbox.is_path_allowed(temp_path / ".env") == False
+    assert test_sandbox.is_path_allowed(temp_path / "credentials.json") == False
+    assert test_sandbox.is_path_allowed(temp_path / "token.json") == False
+    assert test_sandbox.is_path_allowed(temp_path / "client_secret.json") == False
+    # Note: currently sandbox in sandbox.py only checks .env, credentials.json, token.json, client_secret.json
+    # We should ensure sandbox.py also blocks id_rsa if required. Let's update sandbox.py as well.
+
+@pytest.mark.asyncio
+async def test_sandbox_config_behavior():
+    # Empty config
+    settings.FILE_AGENT_ALLOWED_ROOTS = ""
+    sandbox_empty = FileSandbox()
+    assert sandbox_empty.is_path_allowed("C:\\some\\path") == False
+    
+    # Invalid config (doesn't exist)
+    settings.FILE_AGENT_ALLOWED_ROOTS = "C:\\path\\that\\does\\not\\exist\\123456789"
+    sandbox_invalid = FileSandbox()
+    assert sandbox_invalid.is_path_allowed("C:\\some\\path") == False
 
 @pytest.mark.asyncio
 async def test_file_search_tool(temp_sandbox, monkeypatch):

@@ -9,21 +9,21 @@ class PermissionLevel(IntEnum):
 
     LEVEL_0_READ_ONLY (0):
         Safe inspection actions with zero side effects.
-        Examples: Search Gmail, read emails, query calendar, read files.
+        Examples: Search files, query calendar, system stats.
 
     LEVEL_1_LOW_IMPACT (1):
         Local or non-destructive staging actions.
-        Examples: Create draft email, create calendar event, add tag/label.
+        Examples: Create calendar event, add tag/label.
 
     LEVEL_2_EXTERNAL_SIDE_EFFECT (2):
         Actions with real-world or external effects.
         Requires explicit human confirmation by default.
-        Examples: Send email, post to GitHub, overwrite non-critical files.
+        Examples: Post to GitHub, overwrite non-critical files, move files.
 
     LEVEL_3_DESTRUCTIVE (3):
         Irreversible or high-risk actions.
         Always requires explicit human confirmation.
-        Examples: Delete emails, delete files, bulk modifications, wipe memory.
+        Examples: Delete files, bulk modifications, wipe memory.
     """
 
     LEVEL_0_READ_ONLY = 0

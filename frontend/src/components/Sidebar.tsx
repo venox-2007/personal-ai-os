@@ -1,7 +1,6 @@
 import React from "react";
 import {
   Home,
-  Mail,
   Calendar,
   GraduationCap,
   Code2,
@@ -14,7 +13,6 @@ import {
 
 export type NavItem =
   | "home"
-  | "gmail"
   | "calendar"
   | "study"
   | "coding"
@@ -37,7 +35,6 @@ interface NavConfig {
 
 const NAV_ITEMS: NavConfig[] = [
   { id: "home", label: "Orchestrator", icon: Home },
-  { id: "gmail", label: "Gmail Agent", icon: Mail, tag: "Phase 2" },
   { id: "calendar", label: "Calendar Agent", icon: Calendar, tag: "Phase 2" },
   { id: "study", label: "Study Agent", icon: GraduationCap, tag: "Phase 3" },
   { id: "coding", label: "Coding Agent", icon: Code2, tag: "Phase 3" },

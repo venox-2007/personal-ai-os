@@ -34,20 +34,6 @@ const VIEW_DETAILS: Record<NavItem, ViewDetail> = {
     capabilities: ["Intent routing", "Context retrieval", "Safety permission verification"],
     architectureNotes: "Active in Phase 1 as the central coordinating brain.",
   },
-  gmail: {
-    title: "Gmail Agent",
-    phase: "Phase 2 Target",
-    icon: Mail,
-    description: "Autonomous email triage, draft composition, search, and inbox management.",
-    capabilities: [
-      "Search and summarize emails (Level 0)",
-      "Draft replies and manage labels (Level 1)",
-      "Send replies and forward messages (Level 2 - Requires Approval)",
-      "Delete or trash emails (Level 3 - Destructive)",
-      "Extract actionable tasks and deadlines",
-    ],
-    architectureNotes: "Will utilize OAuth2 flow and BaseTool wrapper with permission levels.",
-  },
   calendar: {
     title: "Calendar Agent",
     phase: "Phase 2 Target",
