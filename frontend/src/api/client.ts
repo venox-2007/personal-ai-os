@@ -173,3 +173,65 @@ export async function readFileContent(file_path: string, start_line: number = 1,
   }
   return res.json();
 }
+
+// Study API
+export async function studyIngest(file_path: string): Promise<any> {
+  const res = await fetch("/api/study/ingest", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file_path }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to ingest document");
+  }
+  return res.json();
+}
+
+export async function studySearch(query: string, top_k: number = 5): Promise<any> {
+  const res = await fetch("/api/study/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query, top_k }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to search study material");
+  }
+  return res.json();
+}
+
+export async function studyListDocuments(): Promise<any> {
+  const res = await fetch("/api/study/list");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to list documents");
+  }
+  return res.json();
+}
+
+export async function studyRemoveDocument(document_id: string): Promise<any> {
+  const res = await fetch("/api/study/remove", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ document_id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to remove document");
+  }
+  return res.json();
+}
+
+export async function studyAsk(question: string): Promise<any> {
+  const res = await fetch("/api/study/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to ask study agent");
+  }
+  return res.json();
+}

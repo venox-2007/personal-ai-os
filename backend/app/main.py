@@ -75,6 +75,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             tool_registry.register(tool)
             logger.info(f"Registered {tool.name}.")
 
+    # Register Study Agent and its tools
+    from app.agents.study_agent import StudyAgentRegistration
+    from app.tools.study import (
+        StudyIngestTool, StudySearchTool, StudyListDocumentsTool,
+        StudyRemoveDocumentTool, StudyAskTool
+    )
+    
+    if not agent_registry.get("study_agent"):
+        agent_registry.register(StudyAgentRegistration())
+        logger.info("Registered Study Agent.")
+        
+    for tool_cls in [StudyIngestTool, StudySearchTool, StudyListDocumentsTool, StudyRemoveDocumentTool, StudyAskTool]:
+        tool = tool_cls()
+        if not tool_registry.get(tool.name):
+            tool_registry.register(tool)
+            logger.info(f"Registered {tool.name}.")
+
     yield
 
     logger.info(f"Shutting down {settings.APP_NAME}...")

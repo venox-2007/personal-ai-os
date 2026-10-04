@@ -3,7 +3,6 @@ import { NavItem } from "../components/Sidebar";
 import {
   Mail,
   Calendar,
-  GraduationCap,
   Code2,
   Compass,
   FolderTree,
@@ -25,7 +24,7 @@ interface ViewDetail {
   architectureNotes: string;
 }
 
-const VIEW_DETAILS: Record<NavItem, ViewDetail> = {
+const VIEW_DETAILS: Record<string, ViewDetail> = {
   home: {
     title: "Central Orchestrator",
     phase: "Phase 1 (Operational)",
@@ -45,18 +44,6 @@ const VIEW_DETAILS: Record<NavItem, ViewDetail> = {
       "Detect double-bookings and propose alternative times",
     ],
     architectureNotes: "Will integrate with Google Calendar API and BaseTool contracts.",
-  },
-  study: {
-    title: "Study & Knowledge Agent",
-    phase: "Phase 3 Target",
-    icon: GraduationCap,
-    description: "PDF/PPT document ingestion, local RAG, conceptual breakdowns, and quiz generation.",
-    capabilities: [
-      "Local vector retrieval across personal documents",
-      "Interactive conceptual quizzes and weak-topic tracking",
-      "Adaptive spaced-repetition study planning",
-    ],
-    architectureNotes: "Will leverage local embedding models via Ollama and document chunking.",
   },
   coding: {
     title: "Coding & GitHub Agent",

@@ -3,6 +3,7 @@ import { AppLayout } from "./layouts/AppLayout";
 import { HomePage } from "./pages/HomePage";
 import { PlaceholderView } from "./pages/PlaceholderView";
 import { FilesView } from "./pages/FilesView";
+import { StudyView } from "./pages/StudyView";
 import { NavItem } from "./components/Sidebar";
 import { ChatMessage, AgentActivityEvent, HealthCheckData } from "./types";
 import { checkHealth, sendChatMessage, approveAction, rejectAction } from "./api/client";
@@ -174,6 +175,8 @@ export function App() {
         />
       ) : activeTab === "files" ? (
         <FilesView />
+      ) : activeTab === "study" ? (
+        <StudyView />
       ) : (
         <PlaceholderView tab={activeTab} />
       )}

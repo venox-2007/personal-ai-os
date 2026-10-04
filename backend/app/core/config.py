@@ -48,6 +48,14 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed absolute paths.
     FILE_AGENT_ALLOWED_ROOTS: str = ""
 
+    # Study Agent / RAG Settings
+    STUDY_STORAGE_DIR: str = "./study_data"
+    STUDY_EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
+    STUDY_CHUNK_SIZE: int = 1000
+    STUDY_CHUNK_OVERLAP: int = 200
+    STUDY_RETRIEVAL_TOP_K: int = 5
+    STUDY_MAX_DOC_SIZE_MB: int = 50
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: Union[str, List[str]]) -> List[str]:
