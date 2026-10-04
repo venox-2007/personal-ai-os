@@ -164,7 +164,13 @@ export function App() {
   };
 
   return (
-    <AppLayout activeTab={activeTab} onSelectTab={setActiveTab} health={health}>
+    <AppLayout 
+      activeTab={activeTab} 
+      onSelectTab={setActiveTab} 
+      health={health}
+      activities={activities}
+      isLoading={isLoading}
+    >
       {activeTab === "home" ? (
         <HomePage
           messages={messages}

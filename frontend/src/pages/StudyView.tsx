@@ -74,17 +74,17 @@ export const StudyView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 p-8 overflow-y-auto bg-background flex flex-col">
+    <div className="flex-1 p-8 overflow-y-auto bg-slate-50/50 flex flex-col">
       <div className="max-w-6xl mx-auto w-full space-y-6 flex-1 flex flex-col">
         
         {/* Header */}
-        <div className="p-6 bg-surface border border-surface-border rounded-xl flex items-start gap-4 shrink-0">
-          <div className="w-12 h-12 rounded-xl bg-brand-600/20 text-brand-400 flex items-center justify-center shrink-0">
+        <div className="p-6 bg-white border border-slate-200 rounded-xl flex items-start gap-4 shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-brand-600/20 text-brand-600 flex items-center justify-center shrink-0">
             <GraduationCap className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-slate-100">Study & Knowledge Agent</h2>
-            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+            <h2 className="text-lg font-semibold text-slate-800">Study & Knowledge Agent</h2>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
               Upload documents to your local vector store and ask questions grounded entirely in your material.
             </p>
           </div>
@@ -95,9 +95,9 @@ export const StudyView: React.FC = () => {
           {/* Left Panel - Document Management */}
           <div className="w-1/3 flex flex-col gap-6 overflow-y-auto">
             {/* Ingestion */}
-            <div className="p-4 bg-surface border border-surface-border rounded-xl">
-              <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-                <Upload className="w-4 h-4 text-brand-400" />
+            <div className="p-4 bg-white border border-slate-200 rounded-xl">
+              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                <Upload className="w-4 h-4 text-brand-600" />
                 Ingest Document
               </h3>
               <div className="space-y-3">
@@ -106,7 +106,7 @@ export const StudyView: React.FC = () => {
                   placeholder="Absolute file path (e.g. C:/notes/OS.pdf)"
                   value={ingestPath}
                   onChange={e => setIngestPath(e.target.value)}
-                  className="w-full bg-background border border-surface-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500"
+                  className="w-full bg-slate-50/50 border border-slate-200 rounded px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-brand-500"
                 />
                 <button 
                   onClick={handleIngest}
@@ -116,12 +116,12 @@ export const StudyView: React.FC = () => {
                   {ingestStatus.loading ? "Ingesting..." : "Ingest"}
                 </button>
                 {ingestStatus.error && (
-                  <div className="text-xs text-red-400 bg-red-400/10 p-2 rounded border border-red-400/20">
+                  <div className="text-xs text-red-600 bg-red-400/10 p-2 rounded border border-red-400/20">
                     {ingestStatus.error}
                   </div>
                 )}
                 {ingestStatus.success && (
-                  <div className="text-xs text-emerald-400 bg-emerald-400/10 p-2 rounded border border-emerald-400/20">
+                  <div className="text-xs text-emerald-700 bg-emerald-50 p-2 rounded border border-emerald-200">
                     {ingestStatus.success}
                   </div>
                 )}
@@ -129,9 +129,9 @@ export const StudyView: React.FC = () => {
             </div>
 
             {/* Document List */}
-            <div className="p-4 bg-surface border border-surface-border rounded-xl flex-1 flex flex-col min-h-0">
-              <h3 className="text-sm font-semibold text-slate-200 mb-3 flex items-center gap-2">
-                <Book className="w-4 h-4 text-brand-400" />
+            <div className="p-4 bg-white border border-slate-200 rounded-xl flex-1 flex flex-col min-h-0">
+              <h3 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                <Book className="w-4 h-4 text-brand-600" />
                 Indexed Documents ({documents.length})
               </h3>
               <div className="flex-1 overflow-y-auto space-y-2 pr-1">
@@ -141,15 +141,15 @@ export const StudyView: React.FC = () => {
                   <div className="text-xs text-slate-500">No documents ingested.</div>
                 ) : (
                   documents.map((doc) => (
-                    <div key={doc.document_id} className="bg-surface-secondary border border-surface-border p-3 rounded-lg group">
+                    <div key={doc.document_id} className="bg-slate-50 border border-slate-200 p-3 rounded-lg group">
                       <div className="flex justify-between items-start">
                         <div className="truncate flex-1">
-                          <p className="text-sm font-medium text-slate-200 truncate" title={doc.filename}>{doc.filename}</p>
-                          <p className="text-[10px] text-slate-500 mt-1">Chunks: {doc.chunks} • {doc.ingested_at}</p>
+                          <p className="text-sm font-medium text-slate-800 truncate" title={doc.filename}>{doc.filename}</p>
+                          <p className="text-[10px] text-slate-500 mt-1 font-mono">Chunks: {doc.chunks} • {doc.ingested_at}</p>
                         </div>
                         <button 
                           onClick={() => handleRemove(doc.document_id)}
-                          className="opacity-0 group-hover:opacity-100 p-1.5 text-red-400 hover:bg-red-400/20 rounded transition-all"
+                          className="opacity-0 group-hover:opacity-100 p-1.5 text-red-500 hover:bg-red-50 rounded transition-all"
                           title="Remove Document"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -163,18 +163,18 @@ export const StudyView: React.FC = () => {
           </div>
 
           {/* Right Panel - Search & Ask */}
-          <div className="flex-1 bg-surface border border-surface-border rounded-xl flex flex-col min-h-0">
-            <div className="p-4 border-b border-surface-border">
+          <div className="flex-1 bg-white border border-slate-200 rounded-2xl flex flex-col min-h-0 shadow-sm">
+            <div className="p-5 border-b border-slate-200">
               <div className="flex items-center gap-2 mb-4">
                 <button 
                   onClick={() => setSearchMode("ask")}
-                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${searchMode === "ask" ? "bg-brand-600 text-white" : "bg-surface-secondary text-slate-400 hover:text-slate-200"}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${searchMode === "ask" ? "bg-brand-50 text-brand-700" : "bg-white text-slate-500 hover:bg-slate-50"}`}
                 >
                   Ask Question
                 </button>
                 <button 
                   onClick={() => setSearchMode("search")}
-                  className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${searchMode === "search" ? "bg-brand-600 text-white" : "bg-surface-secondary text-slate-400 hover:text-slate-200"}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${searchMode === "search" ? "bg-brand-50 text-brand-700" : "bg-white text-slate-500 hover:bg-slate-50"}`}
                 >
                   Semantic Search
                 </button>
@@ -186,12 +186,12 @@ export const StudyView: React.FC = () => {
                   value={query}
                   onChange={e => setQuery(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleQuery()}
-                  className="flex-1 bg-background border border-surface-border rounded px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500"
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
                 />
                 <button 
                   onClick={handleQuery}
                   disabled={queryLoading || !query}
-                  className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white px-4 py-2 rounded flex items-center gap-2 text-sm transition-colors"
+                  className="bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-colors"
                 >
                   {searchMode === "ask" ? <HelpCircle className="w-4 h-4" /> : <Search className="w-4 h-4" />}
                   {queryLoading ? "Running..." : "Run"}
@@ -199,50 +199,53 @@ export const StudyView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6 bg-background/50">
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50/50">
               {queryError && (
-                <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-lg flex items-start gap-3">
-                  <AlertTriangle className="text-red-400 w-5 h-5 shrink-0" />
-                  <span className="text-red-200 text-sm">{queryError}</span>
+                <div className="bg-red-50 border border-red-100 p-4 rounded-xl flex items-start gap-3">
+                  <AlertTriangle className="text-red-500 w-5 h-5 shrink-0" />
+                  <span className="text-red-700 text-sm">{queryError}</span>
                 </div>
               )}
               
               {!queryError && !results && !queryLoading && (
                 <div className="h-full flex flex-col items-center justify-center text-slate-500">
-                  <GraduationCap className="w-12 h-12 mb-4 opacity-20" />
-                  <p className="text-sm">Enter a query to explore your study material.</p>
+                  <GraduationCap className="w-12 h-12 mb-4 text-slate-700" />
+                  <p className="text-sm font-medium">Enter a query to explore your study material.</p>
                 </div>
               )}
 
               {queryLoading && (
-                <div className="text-sm text-slate-500 animate-pulse">Processing query through local models...</div>
+                <div className="text-sm text-brand-600 font-medium animate-pulse flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin"></div>
+                  Processing query...
+                </div>
               )}
 
               {results?.type === "ask" && (
                 <div className="space-y-6">
-                  <div className="bg-surface p-5 rounded-xl border border-surface-border">
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]"></div>
-                      <h4 className="text-sm font-semibold text-slate-200">Grounded Answer</h4>
+                      <div className="w-2 h-2 rounded-full bg-brand-500"></div>
+                      <h4 className="text-sm font-semibold text-slate-800">Grounded Answer</h4>
                     </div>
-                    <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+                    <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
                       {results.answer}
                     </div>
                   </div>
                   
                   {results.sources?.length > 0 && (
                     <div>
-                      <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Context Sources</h4>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Context Sources</h4>
                       <div className="space-y-3">
                         {results.sources.map((src: any) => (
-                          <div key={src.id} className="bg-surface-secondary border border-surface-border p-4 rounded-lg">
+                          <div key={src.id} className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-semibold text-brand-400">[{src.id}] {src.filename}</span>
-                              <span className="text-[10px] text-slate-500 font-mono">
+                              <span className="text-xs font-semibold text-brand-600">[{src.id}] {src.filename}</span>
+                              <span className="text-[10px] text-slate-500 font-mono bg-slate-50 px-2 py-1 rounded-md border border-slate-100">
                                 {src.metadata.page ? `Page ${src.metadata.page}` : src.metadata.slide ? `Slide ${src.metadata.slide}` : `Chunk ${src.metadata.chunk_index}`}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">{src.text}</p>
+                            <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{src.text}</p>
                           </div>
                         ))}
                       </div>
@@ -253,25 +256,25 @@ export const StudyView: React.FC = () => {
 
               {results?.type === "search" && (
                 <div className="space-y-4">
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Search Results ({results.data.length})</h4>
+                  <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Search Results ({results.data.length})</h4>
                   {results.data.map((res: any) => (
-                    <div key={res.id} className="bg-surface border border-surface-border p-4 rounded-xl">
+                    <div key={res.id} className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-slate-200">{res.metadata.filename}</span>
+                        <span className="text-sm font-medium text-slate-800">{res.metadata.filename}</span>
                         <div className="flex items-center gap-3">
-                           <span className="text-[10px] text-slate-400 bg-surface-secondary px-2 py-0.5 rounded border border-surface-border font-mono">
+                           <span className="text-[10px] text-slate-500 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 font-mono">
                             {res.metadata.page ? `Pg ${res.metadata.page}` : res.metadata.slide ? `Sl ${res.metadata.slide}` : `Ch ${res.metadata.chunk_index}`}
                            </span>
-                           <span className="text-xs text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full border border-emerald-400/20">
+                           <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
                             {Math.round(res.similarity * 100)}% Match
                            </span>
                         </div>
                       </div>
-                      <p className="text-sm text-slate-400 leading-relaxed whitespace-pre-wrap">{res.text}</p>
+                      <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{res.text}</p>
                     </div>
                   ))}
                   {results.data.length === 0 && (
-                    <div className="text-sm text-slate-500">No semantic matches found.</div>
+                    <div className="text-sm text-slate-500 text-center py-8">No semantic matches found.</div>
                   )}
                 </div>
               )}

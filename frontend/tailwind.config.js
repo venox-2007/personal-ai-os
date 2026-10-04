@@ -7,11 +7,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#0c0e12",
+        background: "#f9fafb", // slate-50
         surface: {
-          DEFAULT: "#14171f",
-          secondary: "#1b202c",
-          border: "#283042",
+          DEFAULT: "#ffffff",
+          secondary: "#f1f5f9", // slate-100
+          border: "#e2e8f0",    // slate-200
         },
         brand: {
           50: "#eff6ff",

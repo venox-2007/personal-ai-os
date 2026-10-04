@@ -54,28 +54,28 @@ export const FilesView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 p-8 overflow-y-auto bg-background flex flex-col">
+    <div className="flex-1 p-8 overflow-y-auto bg-slate-50/50 flex flex-col">
       <div className="max-w-6xl mx-auto w-full space-y-6 flex-1 flex flex-col">
         {/* Title */}
-        <div className="p-6 bg-surface border border-surface-border rounded-xl flex items-start gap-4 shrink-0">
-          <div className="w-12 h-12 rounded-xl bg-brand-600/20 text-brand-400 flex items-center justify-center shrink-0">
+        <div className="p-6 bg-white border border-slate-200 rounded-xl flex items-start gap-4 shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-brand-600/20 text-brand-600 flex items-center justify-center shrink-0">
             <FolderTree className="w-6 h-6" />
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-semibold text-slate-100">Local File Explorer</h2>
-            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+            <h2 className="text-lg font-semibold text-slate-800">Local File Explorer</h2>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
               Search and view local files securely within the allowed sandbox.
             </p>
           </div>
         </div>
 
         {/* Search Bar */}
-        <div className="flex items-center gap-4 bg-surface border border-surface-border p-4 rounded-xl shrink-0">
+        <div className="flex items-center gap-4 bg-white border border-slate-200 p-4 rounded-xl shrink-0">
           <div className="flex-1 flex flex-col gap-1">
-            <label className="text-xs text-slate-400 uppercase font-semibold">Directory (Absolute Path)</label>
+            <label className="text-xs text-slate-500 uppercase font-semibold">Directory (Absolute Path)</label>
             <input 
               type="text" 
-              className="bg-background border border-surface-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500" 
+              className="bg-slate-50/50 border border-slate-200 rounded px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-brand-500" 
               placeholder="e.g. C:/Users/yugag/Documents"
               value={directory}
               onChange={(e) => setDirectory(e.target.value)}
@@ -83,10 +83,10 @@ export const FilesView: React.FC = () => {
             />
           </div>
           <div className="flex-1 flex flex-col gap-1">
-            <label className="text-xs text-slate-400 uppercase font-semibold">Pattern</label>
+            <label className="text-xs text-slate-500 uppercase font-semibold">Pattern</label>
             <input 
               type="text" 
-              className="bg-background border border-surface-border rounded px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500" 
+              className="bg-slate-50/50 border border-slate-200 rounded px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-brand-500" 
               placeholder="*.md, **/*.py"
               value={pattern}
               onChange={(e) => setPattern(e.target.value)}
@@ -104,8 +104,8 @@ export const FilesView: React.FC = () => {
         </div>
         
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-lg flex items-center gap-3 shrink-0">
-            <AlertTriangle className="text-red-400 w-5 h-5" />
+          <div className="bg-red-50 border border-red-200 p-4 rounded-lg flex items-center gap-3 shrink-0">
+            <AlertTriangle className="text-red-600 w-5 h-5" />
             <span className="text-red-200 text-sm">{error}</span>
           </div>
         )}
@@ -113,10 +113,10 @@ export const FilesView: React.FC = () => {
         {/* Content Area */}
         <div className="flex gap-6 flex-1 min-h-0">
           {/* File List */}
-          <div className="w-1/3 bg-surface border border-surface-border rounded-xl flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-surface-border bg-surface-secondary">
-              <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                <Search className="w-4 h-4 text-slate-400" />
+          <div className="w-1/3 bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-slate-200 bg-white-secondary">
+              <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                <Search className="w-4 h-4 text-slate-500" />
                 Search Results ({files.length})
               </h3>
             </div>
@@ -131,7 +131,7 @@ export const FilesView: React.FC = () => {
                   className={`w-full text-left px-3 py-2 rounded flex items-center gap-2 text-sm truncate transition-colors ${
                     selectedFile === f 
                       ? "bg-brand-600/20 text-brand-300 border border-brand-500/30" 
-                      : "text-slate-300 hover:bg-surface-secondary border border-transparent"
+                      : "text-slate-700 hover:bg-white-secondary border border-transparent"
                   }`}
                   title={f}
                 >
@@ -143,13 +143,13 @@ export const FilesView: React.FC = () => {
           </div>
           
           {/* File Details */}
-          <div className="flex-1 bg-surface border border-surface-border rounded-xl flex flex-col overflow-hidden">
+          <div className="flex-1 bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden">
              {selectedFile ? (
                <>
-                 <div className="p-4 border-b border-surface-border bg-surface-secondary flex items-center gap-3 shrink-0">
-                   <Info className="w-5 h-5 text-brand-400" />
+                 <div className="p-4 border-b border-slate-200 bg-white-secondary flex items-center gap-3 shrink-0">
+                   <Info className="w-5 h-5 text-brand-600" />
                    <div className="truncate">
-                     <h3 className="text-sm font-semibold text-slate-200 truncate" title={selectedFile}>
+                     <h3 className="text-sm font-semibold text-slate-800 truncate" title={selectedFile}>
                        {selectedFile.split(/[\\/]/).pop()}
                      </h3>
                      {metadata && (
@@ -160,11 +160,11 @@ export const FilesView: React.FC = () => {
                      )}
                    </div>
                  </div>
-                 <div className="flex-1 overflow-y-auto p-4 bg-background/50">
+                 <div className="flex-1 overflow-y-auto p-4 bg-slate-50/50/50">
                    {contentLoading ? (
                      <div className="text-sm text-slate-500 animate-pulse">Loading content...</div>
                    ) : content ? (
-                     <pre className="text-xs text-slate-300 font-mono whitespace-pre-wrap break-words">
+                     <pre className="text-xs text-slate-700 font-mono whitespace-pre-wrap break-words">
                        {content}
                      </pre>
                    ) : (
