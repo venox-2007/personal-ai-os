@@ -152,5 +152,6 @@ class CalendarEventModel(Base):
     recurrence_rule = Column(String(255), nullable=True)
     status = Column(String(32), default="CONFIRMED", nullable=False)
     calendar_name = Column(String(128), default="Default", nullable=False)
+    calendar_id = Column(String(128), default="default", nullable=False)
     created_at = Column(DateTime, default=utc_now, nullable=False)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)

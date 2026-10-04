@@ -30,12 +30,14 @@ def test_calendar_service_create_get_delete(db):
         location="Room A",
         start_datetime=now,
         end_datetime=now + timedelta(hours=1),
-        timezone="UTC"
+        timezone="UTC",
+        calendar_id="test_calendar_123"
     )
     
     event = calendar_service.create_event(create_data)
     assert event.id is not None
     assert event.title == "Test Event 1"
+    assert event.calendar_id == "test_calendar_123"
     assert event.start_datetime.tzinfo is not None
     
     fetched = calendar_service.get_event(event.id)

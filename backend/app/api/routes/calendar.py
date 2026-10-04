@@ -20,29 +20,9 @@ def get_event(event_id: str):
         raise HTTPException(status_code=404, detail="Event not found")
     return event
 
-@router.post("/events", response_model=CalendarEventResponse)
-def create_event(data: CalendarEventCreate):
-    try:
-        return local_calendar_provider.create_event(data)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
-@router.patch("/events/{event_id}", response_model=CalendarEventResponse)
-def update_event(event_id: str, data: CalendarEventUpdate):
-    try:
-        event = local_calendar_provider.update_event(event_id, data)
-        if not event:
-            raise HTTPException(status_code=404, detail="Event not found")
-        return event
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
-@router.delete("/events/{event_id}")
-def delete_event(event_id: str):
-    success = local_calendar_provider.delete_event(event_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Event not found")
-    return {"message": "Event deleted"}
+
 
 @router.get("/upcoming", response_model=List[CalendarEventResponse])
 def get_upcoming_events(limit: int = 10):

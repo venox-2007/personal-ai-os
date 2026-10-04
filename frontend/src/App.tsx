@@ -187,7 +187,7 @@ export function App() {
       ) : activeTab === "study" ? (
         <StudyView />
       ) : activeTab === "calendar" ? (
-        <CalendarView />
+        <CalendarView onSendMessage={handleSendMessage} onSelectTab={setActiveTab} />
       ) : activeTab === "coding" ? (
         <CodingView />
       ) : activeTab === "research" ? (

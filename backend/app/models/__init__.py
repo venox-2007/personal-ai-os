@@ -8,6 +8,7 @@ from app.models.entities import (
     ToolExecutionModel,
     ApprovalRequestModel,
     SettingModel,
+    CalendarEventModel,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "ToolExecutionModel",
     "ApprovalRequestModel",
     "SettingModel",
+    "CalendarEventModel",
 ]

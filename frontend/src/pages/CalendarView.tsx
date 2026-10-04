@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Calendar as CalendarIcon, Clock, MapPin, AlignLeft, RefreshCw } from "lucide-react";
-import { calendarUpcoming, calendarCreateEvent } from "../api/client";
+import { calendarListEvents } from "../api/client";
+import { NavItem } from "../components/Sidebar";
 
-export const CalendarView: React.FC = () => {
+interface CalendarViewProps {
+  onSendMessage?: (text: string) => void;
+  onSelectTab?: (tab: NavItem) => void;
+}
+
+type ViewMode = "Today" | "Week" | "Month";
+
+export const CalendarView: React.FC<CalendarViewProps> = ({ onSendMessage, onSelectTab }) => {
   const [events, setEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("Today");
 
   // Form state
   const [title, setTitle] = useState("");
@@ -17,13 +26,33 @@ export const CalendarView: React.FC = () => {
   const [repeat, setRepeat] = useState("Never");
 
   useEffect(() => {
-    loadUpcoming();
-  }, []);
+    loadEventsForView(viewMode);
+  }, [viewMode]);
 
-  const loadUpcoming = async () => {
+  const loadEventsForView = async (mode: ViewMode) => {
     setIsLoading(true);
     try {
-      const data = await calendarUpcoming(10);
+      const now = new Date();
+      let startDt = new Date(now);
+      let endDt = new Date(now);
+      
+      if (mode === "Today") {
+        startDt.setHours(0, 0, 0, 0);
+        endDt.setHours(23, 59, 59, 999);
+      } else if (mode === "Week") {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        startDt = new Date(now.setDate(diff));
+        startDt.setHours(0, 0, 0, 0);
+        endDt = new Date(startDt);
+        endDt.setDate(startDt.getDate() + 6);
+        endDt.setHours(23, 59, 59, 999);
+      } else if (mode === "Month") {
+        startDt = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDt = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      }
+      
+      const data = await calendarListEvents(startDt.toISOString(), endDt.toISOString());
       setEvents(data);
     } catch (e) {
       console.error(e);
@@ -36,37 +65,21 @@ export const CalendarView: React.FC = () => {
     e.preventDefault();
     if (!title || !date || !start || !end) return;
 
-    // Build ISO strings assuming local timezone, sending UTC equivalent
-    // but the backend accepts timezone field.
-    const startDt = new Date(`${date}T${start}:00`).toISOString();
-    const endDt = new Date(`${date}T${end}:00`).toISOString();
+    // Use LLM to schedule it so approval triggers exactly once
+    const msg = `Schedule a calendar event titled "${title}" on ${date} from ${start} to ${end}. ` +
+      (location ? `Location is ${location}. ` : "") +
+      (description ? `Description: ${description}. ` : "") +
+      (repeat !== "Never" ? `It repeats ${repeat}.` : "");
 
-    let rrule = undefined;
-    if (repeat === "Daily") rrule = "FREQ=DAILY";
-    else if (repeat === "Weekly") rrule = "FREQ=WEEKLY";
-    else if (repeat === "Weekdays") rrule = "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR";
-    else if (repeat === "Monthly") rrule = "FREQ=MONTHLY";
-    else if (repeat === "Yearly") rrule = "FREQ=YEARLY";
-
-    try {
-      await calendarCreateEvent({
-        title,
-        description: description || undefined,
-        location: location || undefined,
-        start_datetime: startDt,
-        end_datetime: endDt,
-        all_day: false,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-        recurrence_rule: rrule
-      });
-      setShowForm(false);
-      setTitle("");
-      setLocation("");
-      setDescription("");
-      setRepeat("Never");
-      loadUpcoming();
-    } catch (err) {
-      alert("Failed to create event");
+    setShowForm(false);
+    setTitle("");
+    setLocation("");
+    setDescription("");
+    setRepeat("Never");
+    
+    if (onSendMessage && onSelectTab) {
+      onSendMessage(msg);
+      onSelectTab("home");
     }
   };
 
@@ -79,9 +92,15 @@ export const CalendarView: React.FC = () => {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex bg-slate-100 p-1 rounded-lg">
-            <button className="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-slate-900 shadow-sm">Today</button>
-            <button className="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 hover:text-slate-900">Week</button>
-            <button className="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 hover:text-slate-900">Month</button>
+            {(["Today", "Week", "Month"] as ViewMode[]).map(mode => (
+              <button 
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${viewMode === mode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+              >
+                {mode}
+              </button>
+            ))}
           </div>
           <button 
             onClick={() => setShowForm(!showForm)}
@@ -161,15 +180,15 @@ export const CalendarView: React.FC = () => {
           )}
 
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Upcoming Events</h3>
+            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">{viewMode} Events</h3>
             
             {isLoading ? (
               <div className="text-center py-8 text-slate-400">Loading events...</div>
             ) : events.length === 0 ? (
               <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-100 border-dashed">
                 <CalendarIcon className="w-8 h-8 mx-auto text-slate-300 mb-3" />
-                <h3 className="text-slate-700 font-medium">No upcoming events</h3>
-                <p className="text-sm text-slate-500 mt-1">Your schedule is clear for the next 30 days.</p>
+                <h3 className="text-slate-700 font-medium">No events for {viewMode.toLowerCase()}</h3>
+                <p className="text-sm text-slate-500 mt-1">Your schedule is clear.</p>
               </div>
             ) : (
               events.map((ev, i) => {

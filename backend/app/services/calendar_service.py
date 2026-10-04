@@ -35,7 +35,8 @@ class CalendarService:
                 timezone=data.timezone,
                 recurrence_rule=data.recurrence_rule,
                 status=data.status,
-                calendar_name=data.calendar_name
+                calendar_name=data.calendar_name,
+                calendar_id=data.calendar_id
             )
             db.add(event)
             db.commit()
@@ -160,6 +161,7 @@ class CalendarService:
                     recurrence_rule=event.recurrence_rule,
                     status=event.status,
                     calendar_name=event.calendar_name,
+                    calendar_id=event.calendar_id,
                     created_at=event.created_at,
                     updated_at=event.updated_at
                 )

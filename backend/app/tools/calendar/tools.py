@@ -23,6 +23,8 @@ def _serialize_event(ev) -> Dict[str, Any]:
         "timezone": ev.timezone,
         "recurrence_rule": ev.recurrence_rule,
         "status": ev.status,
+        "calendar_name": ev.calendar_name,
+        "calendar_id": ev.calendar_id,
     }
 
 class CalendarCreateEventTool(BaseTool):

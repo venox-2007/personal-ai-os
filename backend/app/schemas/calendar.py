@@ -13,7 +13,8 @@ class CalendarEventBase(BaseModel):
     timezone: str = Field(..., description="IANA timezone identifier (e.g., 'Asia/Kolkata')")
     recurrence_rule: Optional[str] = Field(None, description="RRULE string for recurring events")
     status: str = Field("CONFIRMED", description="Event status: CONFIRMED, TENTATIVE, CANCELLED")
-    calendar_name: str = Field("Default", description="Name or ID of the calendar")
+    calendar_name: str = Field("Default", description="Name of the calendar")
+    calendar_id: str = Field("default", description="ID of the calendar")
 
     @field_validator("timezone")
     @classmethod
@@ -43,6 +44,7 @@ class CalendarEventUpdate(BaseModel):
     recurrence_rule: Optional[str] = None
     status: Optional[str] = None
     calendar_name: Optional[str] = None
+    calendar_id: Optional[str] = None
     
     @field_validator("timezone")
     @classmethod
