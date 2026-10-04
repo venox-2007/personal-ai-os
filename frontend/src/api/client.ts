@@ -235,3 +235,64 @@ export async function studyAsk(question: string): Promise<any> {
   }
   return res.json();
 }
+
+// Coding API
+export async function codingListRepo(repo_path: string): Promise<any> {
+  const res = await fetch("/api/coding/list", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repo_path }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to list repo");
+  return res.json();
+}
+
+export async function codingMetadata(repo_path: string): Promise<any> {
+  const res = await fetch("/api/coding/metadata", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repo_path }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to get metadata");
+  return res.json();
+}
+
+export async function codingSearch(repo_path: string, pattern: string): Promise<any> {
+  const res = await fetch("/api/coding/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repo_path, pattern }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to search code");
+  return res.json();
+}
+
+export async function codingReadFile(file_path: string): Promise<any> {
+  const res = await fetch("/api/coding/read", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file_path }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to read file");
+  return res.json();
+}
+
+export async function codingGitStatus(repo_path: string): Promise<any> {
+  const res = await fetch("/api/coding/git_status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repo_path }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to get git status");
+  return res.json();
+}
+
+export async function codingGitLog(repo_path: string): Promise<any> {
+  const res = await fetch("/api/coding/git_log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repo_path }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to get git log");
+  return res.json();
+}

@@ -3,7 +3,6 @@ import { NavItem } from "../components/Sidebar";
 import {
   Mail,
   Calendar,
-  Code2,
   Compass,
   FolderTree,
   Database,
@@ -44,18 +43,6 @@ const VIEW_DETAILS: Record<string, ViewDetail> = {
       "Detect double-bookings and propose alternative times",
     ],
     architectureNotes: "Will integrate with Google Calendar API and BaseTool contracts.",
-  },
-  coding: {
-    title: "Coding & GitHub Agent",
-    phase: "Phase 3 Target",
-    icon: Code2,
-    description: "Repository understanding, architecture analysis, bug fixing, and test execution.",
-    capabilities: [
-      "Codebase search and architecture explanation (Level 0)",
-      "Automated test runner and bug triage (Level 0 / 1)",
-      "Commit, branch, and PR creation (Level 2 - Requires Approval)",
-    ],
-    architectureNotes: "Runs sandboxed terminal tasks and inspects git repositories.",
   },
   research: {
     title: "Research Agent",

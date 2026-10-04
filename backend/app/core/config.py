@@ -56,6 +56,12 @@ class Settings(BaseSettings):
     STUDY_RETRIEVAL_TOP_K: int = 5
     STUDY_MAX_DOC_SIZE_MB: int = 50
 
+    # Coding Agent Settings
+    CODING_AGENT_ALLOWED_ROOTS: str = ""
+    CODING_AGENT_MAX_SEARCH_RESULTS: int = 50
+    CODING_AGENT_MAX_FILE_SIZE_KB: int = 256
+    GITHUB_ACCESS_TOKEN: str = ""
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: Union[str, List[str]]) -> List[str]:

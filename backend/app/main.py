@@ -92,6 +92,28 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             tool_registry.register(tool)
             logger.info(f"Registered {tool.name}.")
 
+    # Register Coding Agent and its tools
+    from app.agents.coding_agent import CodingAgentRegistration
+    from app.tools.coding import (
+        CodeListRepositoryTool, CodeSearchTool, CodeReadFileTool,
+        CodeGitStatusTool, CodeGitLogTool, CodeGitShowTool,
+        CodeRepoMetadataTool, GithubRepoInfoTool
+    )
+    
+    if not agent_registry.get("coding_agent"):
+        agent_registry.register(CodingAgentRegistration())
+        logger.info("Registered Coding Agent.")
+        
+    for tool_cls in [
+        CodeListRepositoryTool, CodeSearchTool, CodeReadFileTool,
+        CodeGitStatusTool, CodeGitLogTool, CodeGitShowTool,
+        CodeRepoMetadataTool, GithubRepoInfoTool
+    ]:
+        tool = tool_cls()
+        if not tool_registry.get(tool.name):
+            tool_registry.register(tool)
+            logger.info(f"Registered {tool.name}.")
+
     yield
 
     logger.info(f"Shutting down {settings.APP_NAME}...")
