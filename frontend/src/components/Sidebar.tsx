@@ -43,7 +43,7 @@ const NAV_GROUPS: { title: string; items: NavConfig[] }[] = [
   {
     title: "WORK",
     items: [
-      { id: "calendar", label: "Calendar", icon: Calendar, tag: "Soon" },
+      { id: "calendar", label: "Calendar", icon: Calendar },
       { id: "tasks", label: "Tasks", icon: CheckSquare, tag: "Soon" },
     ],
   },

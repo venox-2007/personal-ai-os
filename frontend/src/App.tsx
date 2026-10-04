@@ -6,6 +6,7 @@ import { FilesView } from "./pages/FilesView";
 import { StudyView } from "./pages/StudyView";
 import { CodingView } from "./pages/CodingView";
 import { ResearchView } from "./pages/ResearchView";
+import { CalendarView } from "./pages/CalendarView";
 import { NavItem } from "./components/Sidebar";
 import { ChatMessage, AgentActivityEvent, HealthCheckData } from "./types";
 import { checkHealth, sendChatMessage, approveAction, rejectAction } from "./api/client";
@@ -185,6 +186,8 @@ export function App() {
         <FilesView />
       ) : activeTab === "study" ? (
         <StudyView />
+      ) : activeTab === "calendar" ? (
+        <CalendarView />
       ) : activeTab === "coding" ? (
         <CodingView />
       ) : activeTab === "research" ? (

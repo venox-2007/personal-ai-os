@@ -134,3 +134,23 @@ class SettingModel(Base):
     key = Column(String(128), primary_key=True)
     value = Column(Text, nullable=False)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+
+class CalendarEventModel(Base):
+    """Local calendar event domain model."""
+
+    __tablename__ = "calendar_events"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    location = Column(String(255), nullable=True)
+    start_datetime = Column(DateTime, nullable=False)
+    end_datetime = Column(DateTime, nullable=False)
+    all_day = Column(Boolean, default=False, nullable=False)
+    timezone = Column(String(64), nullable=False, default="UTC")
+    recurrence_rule = Column(String(255), nullable=True)
+    status = Column(String(32), default="CONFIRMED", nullable=False)
+    calendar_name = Column(String(128), default="Default", nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)

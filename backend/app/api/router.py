@@ -11,6 +11,7 @@ from app.api.routes.files import router as files_router
 from app.api.routes.study import router as study_router
 from app.api.routes.coding import router as coding_router
 from app.api.routes.research import router as research_router
+from app.api.routes.calendar import router as calendar_router
 
 api_router = APIRouter()
 
@@ -24,3 +25,4 @@ api_router.include_router(files_router)
 api_router.include_router(study_router)
 api_router.include_router(coding_router)
 api_router.include_router(research_router)
+api_router.include_router(calendar_router)

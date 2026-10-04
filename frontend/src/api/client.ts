@@ -337,3 +337,26 @@ export async function researchFetch(url: string): Promise<any> {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to fetch source");
   return res.json();
 }
+
+// Calendar API
+export async function calendarUpcoming(limit: number = 10): Promise<any[]> {
+  const res = await fetch(`/api/calendar/upcoming?limit=${limit}`);
+  if (!res.ok) throw new Error("Failed to fetch upcoming events");
+  return res.json();
+}
+
+export async function calendarListEvents(start: string, end: string): Promise<any[]> {
+  const res = await fetch(`/api/calendar/events?start_datetime=${encodeURIComponent(start)}&end_datetime=${encodeURIComponent(end)}`);
+  if (!res.ok) throw new Error("Failed to list events");
+  return res.json();
+}
+
+export async function calendarCreateEvent(data: any): Promise<any> {
+  const res = await fetch("/api/calendar/events", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to create event");
+  return res.json();
+}

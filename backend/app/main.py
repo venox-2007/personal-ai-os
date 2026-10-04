@@ -132,6 +132,25 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             tool_registry.register(tool)
             logger.info(f"Registered {tool.name}.")
 
+    # Register Calendar Agent
+    from app.agents.calendar_agent import CalendarAgentRegistration
+    from app.tools.calendar.tools import (
+        CalendarCreateEventTool, CalendarUpdateEventTool, CalendarDeleteEventTool,
+        CalendarListEventsTool, CalendarSearchEventsTool, CalendarUpcomingEventsTool, CalendarFindConflictsTool
+    )
+    if not agent_registry.get("calendar_agent"):
+        agent_registry.register(CalendarAgentRegistration())
+        logger.info("Registered Calendar Agent.")
+        
+    for tool_cls in [
+        CalendarCreateEventTool, CalendarUpdateEventTool, CalendarDeleteEventTool,
+        CalendarListEventsTool, CalendarSearchEventsTool, CalendarUpcomingEventsTool, CalendarFindConflictsTool
+    ]:
+        tool = tool_cls()
+        if not tool_registry.get(tool.name):
+            tool_registry.register(tool)
+            logger.info(f"Registered {tool.name}.")
+
     yield
 
     logger.info(f"Shutting down {settings.APP_NAME}...")
