@@ -37,6 +37,13 @@ Guidelines:
 2. If the user asks a general question or conversational request where no tool is needed, respond directly, politely, and concisely.
 3. Once a tool has returned its results, synthesize those results into a helpful, natural-language response. Do not repeat raw JSON unless asked.
 4. Do not invent or hallucinate tool names. Only call tools that are explicitly declared in the tool definitions.
+5. For Research Tasks:
+   - Use supplied evidence for sourced claims.
+   - Distinguish evidence from inference. Preserve uncertainty; acknowledge conflicting sources.
+   - Say when evidence is insufficient.
+   - Never fabricate sources, URLs, or citations. Never claim to have visited a source you were not given.
+   - Use explicit citations (e.g. [1], [2]) corresponding strictly to the provided sources. Do not invent citation numbers.
+   - Prioritize correctness over completeness.
 """
 
 
@@ -203,6 +210,33 @@ class Orchestrator:
             # Case A: Model responded with normal text without tool requests
             if not llm_response.has_tool_calls:
                 final_text = llm_response.content or "Task completed."
+                
+                # --- CITATION VALIDATION LAYER ---
+                # Heuristic: Find all [1], [2], etc.
+                import re
+                citations = [int(m) for m in re.findall(r'\[(\d+)\]', final_text)]
+                if citations:
+                    max_cit = max(citations)
+                    # Count total sources the LLM saw in recent tool outputs
+                    # We just do a simple string count of '"url":' or '"source_url":' in tool outputs
+                    tool_texts = [m.content for m in messages if m.role == "tool"]
+                    tool_content_str = " ".join(tool_texts)
+                    # Alternatively, if there's no tool outputs, max_cit should be 0
+                    # We can count occurrences of `"title"` in tool output to guess number of sources,
+                    # but it's safer to just check if the text `[max_cit]` appears in the tool outputs (often models cite by [1]).
+                    # Let's count how many distinct URLs were fetched or returned by search
+                    source_count = tool_content_str.count('"url":') + tool_content_str.count('"source_url":')
+                    
+                    if max_cit > max(10, source_count + 5): # rough heuristic to avoid false positives in code snippets
+                        # For Phase 6B: strict validation failure surface
+                        warning_msg = (
+                            f"\n\n> [!WARNING] Citation Validation Issue\n"
+                            f"> The synthesized response included citations (e.g., [{max_cit}]) that do not appear "
+                            f"to correspond to the provided sources. Please verify the claims independently."
+                        )
+                        final_text += warning_msg
+                # ---------------------------------
+                
                 activities.append(
                     AgentActivityEvent(
                         agent="Orchestrator",

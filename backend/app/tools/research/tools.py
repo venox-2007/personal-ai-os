@@ -1,19 +1,22 @@
 from typing import Dict, Any, List
+import logging
 from app.tools.base import BaseTool, ToolResult, PermissionLevel
 from app.core.config import settings
 from .provider import DuckDuckGoProvider
 from .fetcher import WebFetcher, SecurityException
 
+logger = logging.getLogger(__name__)
+
 class ResearchSearchTool(BaseTool):
     name: str = "research_search"
-    description: str = "Search the web for information."
+    description: str = "Search the web for information. Returns normalized URLs with snippets."
     permission_level: PermissionLevel = PermissionLevel.LEVEL_0_READ_ONLY
     
     parameters_schema: Dict[str, Any] = {
         "type": "object",
         "properties": {
             "query": {"type": "string"},
-            "max_results": {"type": "integer", "description": "Max results to return (default 5, max configured limit)"}
+            "max_results": {"type": "integer", "description": "Max results to return"}
         },
         "required": ["query"]
     }
@@ -26,12 +29,17 @@ class ResearchSearchTool(BaseTool):
         query = kwargs.get("query")
         max_results = min(kwargs.get("max_results", 5), settings.RESEARCH_MAX_SEARCH_RESULTS)
         
-        results = await self.provider.search(query, max_results)
-        return ToolResult(success=True, output={"query": query, "results": results})
+        try:
+            results = await self.provider.search(query, max_results)
+            if not results:
+                return ToolResult(success=True, output={"query": query, "results": [], "message": "Zero results found."})
+            return ToolResult(success=True, output={"query": query, "results": results})
+        except Exception as e:
+            return ToolResult(success=False, error=f"Search provider unavailable or failed: {str(e)}")
 
 class ResearchFetchSourceTool(BaseTool):
     name: str = "research_fetch_source"
-    description: str = "Fetch and extract text content from a URL."
+    description: str = "Fetch and extract text content from a single URL safely."
     permission_level: PermissionLevel = PermissionLevel.LEVEL_0_READ_ONLY
     
     parameters_schema: Dict[str, Any] = {
@@ -54,9 +62,11 @@ class ResearchFetchSourceTool(BaseTool):
                 return ToolResult(success=False, error=result["error"])
             return ToolResult(success=True, output=result)
         except SecurityException as e:
-            return ToolResult(success=False, error=str(e))
+            logger.warning(f"Security exception fetching {url}: {e}")
+            return ToolResult(success=False, error=f"Security violation: {str(e)}")
         except Exception as e:
-            return ToolResult(success=False, error=str(e))
+            logger.error(f"Error fetching {url}: {e}")
+            return ToolResult(success=False, error=f"Fetch failed: {str(e)}")
 
 class ResearchExtractEvidenceTool(BaseTool):
     name: str = "research_extract_evidence"
@@ -67,31 +77,42 @@ class ResearchExtractEvidenceTool(BaseTool):
         "type": "object",
         "properties": {
             "source_text": {"type": "string"},
+            "source_url": {"type": "string", "description": "Identity of the source"},
             "topic": {"type": "string"}
         },
-        "required": ["source_text", "topic"]
+        "required": ["source_text", "source_url", "topic"]
     }
     
     async def execute(self, **kwargs) -> ToolResult:
-        # In a real heavy system this might use embeddings/LLM. 
-        # For Phase 6A, we'll do simple keyword windowing or just return a snippet.
-        # To avoid overhead, we rely on the agent to pass source_text (which might be too large).
-        # Actually, if we just truncate and return, the orchestrator's LLM does the synthesis.
         text = kwargs.get("source_text", "")
+        url = kwargs.get("source_url", "unknown")
         topic = kwargs.get("topic", "").lower()
         
-        # Simple extraction: find paragraphs mentioning topic words
-        paragraphs = text.split("\n")
+        if not text:
+            return ToolResult(success=False, error="Source text is empty.")
+            
+        paragraphs = [p.strip() for p in text.split("\n") if p.strip()]
         evidence = []
-        topic_words = set(topic.split())
+        topic_words = {w.lower() for w in topic.split() if len(w) > 3}
+        current_chars = 0
+        max_chars = settings.RESEARCH_MAX_EVIDENCE_CHARS
         
         for p in paragraphs:
             p_lower = p.lower()
-            if any(w in p_lower for w in topic_words if len(w) > 3):
-                if len(evidence) < 5:
-                    evidence.append(p.strip())
+            # If any topic word is in the paragraph
+            if any(w in p_lower for w in topic_words):
+                if current_chars + len(p) <= max_chars:
+                    evidence.append(p)
+                    current_chars += len(p)
+                else:
+                    # Truncate final paragraph if needed
+                    remaining = max_chars - current_chars
+                    if remaining > 50:
+                        evidence.append(p[:remaining] + "...")
+                        current_chars += remaining
+                    break
                     
         if not evidence:
-            evidence = paragraphs[:5] # fallback to beginning
+            return ToolResult(success=True, output={"source_url": url, "evidence": "Insufficient evidence found for this topic."})
             
-        return ToolResult(success=True, output={"evidence": evidence})
+        return ToolResult(success=True, output={"source_url": url, "evidence": evidence, "total_chars": current_chars})

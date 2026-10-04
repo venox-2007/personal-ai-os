@@ -66,9 +66,14 @@ class Settings(BaseSettings):
 
     # Research Agent Settings
     RESEARCH_MAX_SEARCH_RESULTS: int = 10
-    RESEARCH_MAX_SOURCES_FETCHED: int = 5
+    RESEARCH_MAX_SOURCES: int = 5
     RESEARCH_MAX_SOURCE_SIZE_MB: int = 5
     RESEARCH_USER_AGENT: str = "PersonalAIOS/1.0"
+    RESEARCH_MAX_REDIRECTS: int = 3
+    RESEARCH_REQUEST_TIMEOUT_SECONDS: int = 15
+    RESEARCH_MAX_EXTRACTED_CHARS: int = 20000
+    RESEARCH_MAX_EVIDENCE_CHARS: int = 5000
+    RESEARCH_MAX_TOTAL_CONTEXT_CHARS: int = 40000
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
