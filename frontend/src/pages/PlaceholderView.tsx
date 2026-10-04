@@ -3,7 +3,6 @@ import { NavItem } from "../components/Sidebar";
 import {
   Mail,
   Calendar,
-  Compass,
   FolderTree,
   Database,
   ShieldCheck,
@@ -43,18 +42,6 @@ const VIEW_DETAILS: Record<string, ViewDetail> = {
       "Detect double-bookings and propose alternative times",
     ],
     architectureNotes: "Will integrate with Google Calendar API and BaseTool contracts.",
-  },
-  research: {
-    title: "Research Agent",
-    phase: "Phase 4 Target",
-    icon: Compass,
-    description: "Zero-cost web search, multi-source synthesis, and citation generation.",
-    capabilities: [
-      "Search queries and source harvesting",
-      "Cross-source fact comparison and bias detection",
-      "Structured briefings with verified references",
-    ],
-    architectureNotes: "Integrates zero-cost web scrapers and synthesis pipeline.",
   },
   files: {
     title: "Local File Agent",

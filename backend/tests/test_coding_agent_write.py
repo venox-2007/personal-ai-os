@@ -123,3 +123,24 @@ async def test_code_run_tests_invalid_command(temp_repo, monkeypatch):
     res = await tool.execute(test_command_id="invalid")
     assert res.success == False
     assert "not in the allowlist" in res.error
+
+@pytest.mark.asyncio
+async def test_code_run_tests_injection_blocked(temp_repo, monkeypatch):
+    p, repo = temp_repo
+    test_sandbox = CodeSandbox()
+    import app.tools.coding.write_tools as write_module
+    monkeypatch.setattr(write_module, "sandbox", test_sandbox)
+    
+    # Mock settings
+    settings.CODING_AGENT_TEST_COMMANDS = '{"valid": {"executable": "echo", "args": ["hello"], "cwd": "."}}'
+    
+    tool = CodeRunTestsTool()
+    
+    # Test arbitrary path execution injection by modifying test_command_id
+    res = await tool.execute(test_command_id='valid; ls')
+    assert res.success == False
+    assert "not in the allowlist" in res.error
+    
+    res = await tool.execute(test_command_id='valid" && whoami')
+    assert res.success == False
+    assert "not in the allowlist" in res.error

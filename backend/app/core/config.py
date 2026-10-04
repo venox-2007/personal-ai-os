@@ -64,6 +64,12 @@ class Settings(BaseSettings):
     # JSON string mapping test_id -> {"executable": "pytest", "args": ["backend/tests"], "cwd": "backend"}
     CODING_AGENT_TEST_COMMANDS: str = '{"backend_tests": {"executable": "pytest", "args": ["backend/tests"], "cwd": "."}, "frontend_build": {"executable": "npm", "args": ["run", "build"], "cwd": "frontend"}}'
 
+    # Research Agent Settings
+    RESEARCH_MAX_SEARCH_RESULTS: int = 10
+    RESEARCH_MAX_SOURCES_FETCHED: int = 5
+    RESEARCH_MAX_SOURCE_SIZE_MB: int = 5
+    RESEARCH_USER_AGENT: str = "PersonalAIOS/1.0"
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: Union[str, List[str]]) -> List[str]:

@@ -316,3 +316,24 @@ export async function codingGitDiff(repo_path: string): Promise<any> {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to get git diff");
   return res.json();
 }
+
+// Research API
+export async function researchSearch(query: string, max_results: number = 5): Promise<any> {
+  const res = await fetch("/api/research/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ query, max_results }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to search");
+  return res.json();
+}
+
+export async function researchFetch(url: string): Promise<any> {
+  const res = await fetch("/api/research/fetch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to fetch source");
+  return res.json();
+}
