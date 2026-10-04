@@ -296,3 +296,23 @@ export async function codingGitLog(repo_path: string): Promise<any> {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to get git log");
   return res.json();
 }
+
+export async function codingProposeEdit(file_path: string, expected_old_content: string, new_content: string, reason: string): Promise<any> {
+  const res = await fetch("/api/coding/propose_edit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file_path, expected_old_content, new_content, reason }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to propose edit");
+  return res.json();
+}
+
+export async function codingGitDiff(repo_path: string): Promise<any> {
+  const res = await fetch("/api/coding/git_diff", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ repo_path }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || "Failed to get git diff");
+  return res.json();
+}

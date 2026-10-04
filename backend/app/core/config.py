@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     CODING_AGENT_MAX_SEARCH_RESULTS: int = 50
     CODING_AGENT_MAX_FILE_SIZE_KB: int = 256
     GITHUB_ACCESS_TOKEN: str = ""
+    # JSON string mapping test_id -> {"executable": "pytest", "args": ["backend/tests"], "cwd": "backend"}
+    CODING_AGENT_TEST_COMMANDS: str = '{"backend_tests": {"executable": "pytest", "args": ["backend/tests"], "cwd": "."}, "frontend_build": {"executable": "npm", "args": ["run", "build"], "cwd": "frontend"}}'
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

@@ -17,7 +17,13 @@ class CodingAgentRegistration(BaseAgent):
         "code_git_log",
         "code_git_show",
         "code_repo_metadata",
-        "github_repo_info"
+        "github_repo_info",
+        "code_propose_edit",
+        "code_apply_edit",
+        "code_git_diff",
+        "code_create_branch",
+        "code_commit",
+        "code_run_tests"
     ]
 
     async def run(self, task: str, context: Any = None) -> AgentRunResult:

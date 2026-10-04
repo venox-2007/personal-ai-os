@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Code2, Folder, Search, FileText, GitBranch, Terminal, AlertTriangle, FileCode2 } from "lucide-react";
-import { codingListRepo, codingMetadata, codingSearch, codingReadFile, codingGitStatus, codingGitLog } from "../api/client";
+import { codingListRepo, codingMetadata, codingSearch, codingReadFile, codingGitStatus, codingGitLog, codingGitDiff } from "../api/client";
 
 export const CodingView: React.FC = () => {
   const [repoPath, setRepoPath] = useState("");
@@ -16,6 +16,8 @@ export const CodingView: React.FC = () => {
   
   const [gitStatus, setGitStatus] = useState<string>("");
   const [gitLog, setGitLog] = useState<any[]>([]);
+  const [gitDiff, setGitDiff] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"search" | "diff">("search");
 
   const loadRepository = async () => {
     if (!repoPath.trim()) return;
@@ -26,6 +28,7 @@ export const CodingView: React.FC = () => {
     setSearchResults([]);
     setGitStatus("");
     setGitLog([]);
+    setGitDiff("");
     
     try {
       const meta = await codingMetadata(repoPath);
@@ -46,6 +49,21 @@ export const CodingView: React.FC = () => {
     } catch (err: any) {
       setError(err.message);
       setActiveRepo(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLoadDiff = async () => {
+    if (!activeRepo) return;
+    setLoading(true);
+    try {
+      const res = await codingGitDiff(repoPath);
+      setGitDiff(res.diff || "No changes.");
+      setActiveTab("diff");
+      setViewingFile(null);
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -168,23 +186,30 @@ export const CodingView: React.FC = () => {
             {/* Main Area: Viewer & Search */}
             <div className="flex-1 flex flex-col gap-4 min-h-0">
               
-              {/* Search Bar */}
-              <div className="bg-surface border border-surface-border rounded-xl p-4 shrink-0 flex gap-2">
+              {/* Search Bar / Toggles */}
+              <div className="bg-surface border border-surface-border rounded-xl p-4 shrink-0 flex gap-2 items-center">
                 <input 
                   type="text" 
                   placeholder="Regex / Pattern search in code..."
                   value={searchPattern}
                   onChange={e => setSearchPattern(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleSearch()}
+                  onKeyDown={e => { if (e.key === "Enter") { handleSearch(); setActiveTab("search"); } }}
                   className="flex-1 bg-background border border-surface-border rounded px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-brand-500"
                 />
                 <button 
-                  onClick={handleSearch}
+                  onClick={() => {handleSearch(); setActiveTab("search");}}
                   disabled={loading || !searchPattern}
                   className="bg-surface-secondary hover:bg-surface-border disabled:opacity-50 text-slate-200 px-4 py-2 rounded flex items-center gap-2 text-sm transition-colors border border-surface-border"
                 >
                   <Search className="w-4 h-4" />
                   Search
+                </button>
+                <button 
+                  onClick={handleLoadDiff}
+                  disabled={loading}
+                  className={`px-4 py-2 rounded text-sm transition-colors border border-surface-border ${activeTab === "diff" ? "bg-brand-600 border-brand-500 text-white" : "bg-surface-secondary text-slate-200"}`}
+                >
+                  Workspace Diff
                 </button>
               </div>
 
@@ -198,7 +223,29 @@ export const CodingView: React.FC = () => {
                   </div>
                 )}
                 
-                {searchResults.length > 0 && !viewingFile ? (
+                {activeTab === "diff" ? (
+                  <div className="flex flex-col h-full">
+                    <div className="bg-surface-secondary border-b border-surface-border px-4 py-2 flex justify-between items-center shrink-0">
+                      <span className="text-xs font-semibold text-slate-200 font-mono flex items-center gap-2">
+                        <GitBranch className="w-4 h-4 text-brand-400" />
+                        git diff
+                      </span>
+                    </div>
+                    <div className="flex-1 overflow-auto p-4 bg-background">
+                      {gitDiff ? (
+                        <pre className="text-[11px] font-mono whitespace-pre-wrap break-words leading-relaxed">
+                          {gitDiff.split('\n').map((line, i) => (
+                            <div key={i} className={line.startsWith('+') && !line.startsWith('+++') ? 'text-green-400' : line.startsWith('-') && !line.startsWith('---') ? 'text-red-400' : 'text-slate-300'}>
+                              {line}
+                            </div>
+                          ))}
+                        </pre>
+                      ) : (
+                        <div className="text-slate-500 text-sm">No changes in workspace.</div>
+                      )}
+                    </div>
+                  </div>
+                ) : searchResults.length > 0 && !viewingFile ? (
                   <div className="p-4 overflow-y-auto h-full space-y-4">
                     <h3 className="text-sm font-semibold text-slate-200 sticky top-0 bg-surface pb-2">Search Results ({searchResults.length})</h3>
                     {searchResults.map((res, i) => (

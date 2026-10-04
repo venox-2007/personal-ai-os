@@ -61,6 +61,26 @@ async def git_log(req: RepoRequest):
     if not result.success: raise HTTPException(status_code=400, detail=result.error)
     return result.output
 
+@router.post("/git_diff")
+async def git_diff(req: RepoRequest):
+    tool = tool_registry.get("code_git_diff")
+    result = await tool.execute(repo_path=req.repo_path)
+    if not result.success: raise HTTPException(status_code=400, detail=result.error)
+    return result.output
+
+class ProposeEditRequest(BaseModel):
+    file_path: str
+    expected_old_content: str
+    new_content: str
+    reason: str
+
+@router.post("/propose_edit")
+async def propose_edit(req: ProposeEditRequest):
+    tool = tool_registry.get("code_propose_edit")
+    result = await tool.execute(file_path=req.file_path, expected_old_content=req.expected_old_content, new_content=req.new_content, reason=req.reason)
+    if not result.success: raise HTTPException(status_code=400, detail=result.error)
+    return result.output
+
 @router.post("/ask")
 async def ask_agent(req: AskRequest):
     # This is a stub for the frontend to ask the agent. In a real system,

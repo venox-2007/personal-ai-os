@@ -97,7 +97,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from app.tools.coding import (
         CodeListRepositoryTool, CodeSearchTool, CodeReadFileTool,
         CodeGitStatusTool, CodeGitLogTool, CodeGitShowTool,
-        CodeRepoMetadataTool, GithubRepoInfoTool
+        CodeRepoMetadataTool, GithubRepoInfoTool,
+        CodeProposeEditTool, CodeApplyEditTool, CodeGitDiffTool,
+        CodeCreateBranchTool, CodeCommitTool, CodeRunTestsTool
     )
     
     if not agent_registry.get("coding_agent"):
@@ -107,7 +109,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     for tool_cls in [
         CodeListRepositoryTool, CodeSearchTool, CodeReadFileTool,
         CodeGitStatusTool, CodeGitLogTool, CodeGitShowTool,
-        CodeRepoMetadataTool, GithubRepoInfoTool
+        CodeRepoMetadataTool, GithubRepoInfoTool,
+        CodeProposeEditTool, CodeApplyEditTool, CodeGitDiffTool,
+        CodeCreateBranchTool, CodeCommitTool, CodeRunTestsTool
     ]:
         tool = tool_cls()
         if not tool_registry.get(tool.name):
