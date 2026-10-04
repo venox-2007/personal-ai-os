@@ -96,7 +96,7 @@ export const CodingView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 p-8 overflow-hidden bg-slate-50/50 flex flex-col">
+    <div className="flex-1 p-8 overflow-hidden bg-background flex flex-col font-sans">
       <div className="max-w-7xl mx-auto w-full space-y-6 flex-1 flex flex-col h-full">
         
         {/* Header & Repo Selection */}
