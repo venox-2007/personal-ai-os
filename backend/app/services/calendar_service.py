@@ -36,7 +36,8 @@ class CalendarService:
                 recurrence_rule=data.recurrence_rule,
                 status=data.status,
                 calendar_name=data.calendar_name,
-                calendar_id=data.calendar_id
+                calendar_id=data.calendar_id,
+                ics_uid=data.ics_uid
             )
             db.add(event)
             db.commit()
@@ -59,6 +60,13 @@ class CalendarService:
     def get_event(self, event_id: str) -> Optional[CalendarEventModel]:
         with self._get_db() as db:
             event = db.query(CalendarEventModel).filter(CalendarEventModel.id == event_id).first()
+            if event:
+                return self._hydrate_tz(event)
+            return None
+
+    def get_event_by_ics_uid(self, ics_uid: str) -> Optional[CalendarEventModel]:
+        with self._get_db() as db:
+            event = db.query(CalendarEventModel).filter(CalendarEventModel.ics_uid == ics_uid).first()
             if event:
                 return self._hydrate_tz(event)
             return None
@@ -162,6 +170,7 @@ class CalendarService:
                     status=event.status,
                     calendar_name=event.calendar_name,
                     calendar_id=event.calendar_id,
+                    ics_uid=event.ics_uid,
                     created_at=event.created_at,
                     updated_at=event.updated_at
                 )

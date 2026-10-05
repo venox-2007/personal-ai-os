@@ -136,7 +136,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from app.agents.calendar_agent import CalendarAgentRegistration
     from app.tools.calendar.tools import (
         CalendarCreateEventTool, CalendarUpdateEventTool, CalendarDeleteEventTool,
-        CalendarListEventsTool, CalendarSearchEventsTool, CalendarUpcomingEventsTool, CalendarFindConflictsTool
+        CalendarListEventsTool, CalendarSearchEventsTool, CalendarUpcomingEventsTool, CalendarFindConflictsTool,
+        CalendarImportICSTool, CalendarExportICSTool
     )
     if not agent_registry.get("calendar_agent"):
         agent_registry.register(CalendarAgentRegistration())
@@ -144,7 +145,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         
     for tool_cls in [
         CalendarCreateEventTool, CalendarUpdateEventTool, CalendarDeleteEventTool,
-        CalendarListEventsTool, CalendarSearchEventsTool, CalendarUpcomingEventsTool, CalendarFindConflictsTool
+        CalendarListEventsTool, CalendarSearchEventsTool, CalendarUpcomingEventsTool, CalendarFindConflictsTool,
+        CalendarImportICSTool, CalendarExportICSTool
     ]:
         tool = tool_cls()
         if not tool_registry.get(tool.name):

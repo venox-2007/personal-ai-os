@@ -209,3 +209,63 @@ class CalendarFindConflictsTool(BaseTool):
             })
         except Exception as e:
             return ToolResult(success=False, error=str(e))
+
+
+from app.services.ics_service import ICSImportService, ICSExportService
+
+class CalendarImportICSTool(BaseTool):
+    name: str = "calendar_import_ics"
+    description: str = "Import calendar events from ICS format text."
+    permission_level: PermissionLevel = PermissionLevel.LEVEL_2_EXTERNAL_SIDE_EFFECT
+
+    parameters_schema: Dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "ics_content": {"type": "string"},
+            "mode": {"type": "string", "enum": ["skip", "update", "create"]},
+            "calendar_name": {"type": "string"}
+        },
+        "required": ["ics_content"]
+    }
+
+    async def execute(self, **kwargs) -> ToolResult:
+        ics_content = kwargs.get("ics_content")
+        mode = kwargs.get("mode", "skip")
+        calendar_name = kwargs.get("calendar_name", "Default")
+        if not ics_content:
+            return ToolResult(success=False, error="ics_content is required")
+        try:
+            res = ICSImportService.parse_ics(ics_content, mode=mode, calendar_name=calendar_name)
+            return ToolResult(success=True, output=f"Imported ICS: {res['created']} created, {res['skipped']} skipped, {res['updated']} updated, {res['errors']} errors.")
+        except Exception as e:
+            return ToolResult(success=False, error=str(e))
+
+class CalendarExportICSTool(BaseTool):
+    name: str = "calendar_export_ics"
+    description: str = "Export calendar events to ICS format text."
+    permission_level: PermissionLevel = PermissionLevel.LEVEL_0_READ_ONLY
+    
+    parameters_schema: Dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "event_id": {"type": "string", "description": "Optional event ID to export. If absent, exports all."}
+        }
+    }
+
+    async def execute(self, **kwargs) -> ToolResult:
+        event_id = kwargs.get("event_id")
+        if event_id:
+            ev = local_calendar_provider.get_event(event_id)
+            if not ev:
+                return ToolResult(success=False, error="Event not found")
+            events = [ev]
+        else:
+            start = datetime.now().replace(year=datetime.now().year - 1)
+            end = datetime.now().replace(year=datetime.now().year + 5)
+            events = local_calendar_provider.list_events(start, end, limit=1000)
+        
+        try:
+            res = ICSExportService.export_events(events)
+            return ToolResult(success=True, output=res)
+        except Exception as e:
+            return ToolResult(success=False, error=str(e))

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Calendar as CalendarIcon, Clock, MapPin, AlignLeft, RefreshCw } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Clock, MapPin, AlignLeft, RefreshCw, Download, Upload } from "lucide-react";
 import { calendarListEvents } from "../api/client";
 import { NavItem } from "../components/Sidebar";
 
@@ -83,6 +83,37 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onSendMessage, onSel
     }
   };
 
+  const handleExport = () => {
+    window.open("/api/calendar/export/ics", "_blank");
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("mode", "skip");
+      
+      const res = await fetch("/api/calendar/import/ics", {
+        method: "POST",
+        body: formData
+      });
+      
+      if (!res.ok) throw new Error("Import failed");
+      
+      if (onSelectTab) {
+        onSelectTab("home");
+      }
+    } catch (err) {
+      alert("Failed to import calendar.");
+    }
+    
+    // reset input
+    e.target.value = '';
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full bg-background font-sans overflow-y-auto">
       <header className="px-8 py-6 border-b border-surface-border flex items-center justify-between shrink-0 sticky top-0 bg-background/80 backdrop-blur-md z-10">
@@ -102,6 +133,17 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ onSendMessage, onSel
               </button>
             ))}
           </div>
+          
+          <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+            <label className="flex items-center justify-center p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors" title="Import ICS">
+              <Upload className="w-4 h-4" />
+              <input type="file" accept=".ics" className="hidden" onChange={handleImport} />
+            </label>
+            <button onClick={handleExport} className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors" title="Export ICS">
+              <Download className="w-4 h-4" />
+            </button>
+          </div>
+
           <button 
             onClick={() => setShowForm(!showForm)}
             className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"

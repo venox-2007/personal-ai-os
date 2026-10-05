@@ -49,5 +49,18 @@ class LocalCalendarProvider(BaseCalendarProvider):
     def list_events(self, start: datetime, end: datetime, calendar_name: Optional[str] = None, limit: int = 100) -> List[CalendarEventModel]:
         return self.service.list_events(start, end, calendar_name, limit)
 
-# Registry or active provider can be managed here.
-local_calendar_provider = LocalCalendarProvider()
+class CalendarProviderRegistry:
+    def __init__(self):
+        self._providers = {
+            "local": LocalCalendarProvider()
+        }
+
+    def get_provider(self, name: str) -> Optional[BaseCalendarProvider]:
+        return self._providers.get(name)
+
+    def list_providers(self) -> List[str]:
+        return list(self._providers.keys())
+
+provider_registry = CalendarProviderRegistry()
+# Export local by default for backwards compatibility in API where default is expected
+local_calendar_provider = provider_registry.get_provider("local")

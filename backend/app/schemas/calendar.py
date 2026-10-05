@@ -15,6 +15,7 @@ class CalendarEventBase(BaseModel):
     status: str = Field("CONFIRMED", description="Event status: CONFIRMED, TENTATIVE, CANCELLED")
     calendar_name: str = Field("Default", description="Name of the calendar")
     calendar_id: str = Field("default", description="ID of the calendar")
+    ics_uid: Optional[str] = Field(None, description="Global UID from ICS or external provider")
 
     @field_validator("timezone")
     @classmethod
@@ -45,6 +46,7 @@ class CalendarEventUpdate(BaseModel):
     status: Optional[str] = None
     calendar_name: Optional[str] = None
     calendar_id: Optional[str] = None
+    ics_uid: Optional[str] = None
     
     @field_validator("timezone")
     @classmethod
