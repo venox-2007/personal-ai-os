@@ -352,3 +352,13 @@ export async function calendarListEvents(start: string, end: string): Promise<an
 }
 
 
+
+export const fetchActiveWorkflows = async (): Promise<any[]> => {
+  const response = await fetch('/api/workflows');
+  if (!response.ok) {
+    throw new Error(`Failed to fetch workflows: ${response.statusText}`);
+  }
+  const data = await response.json();
+  return data.filter((wf: any) => ["PENDING", "RUNNING", "WAITING_APPROVAL"].includes(wf.status));
+};
+

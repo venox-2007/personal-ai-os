@@ -85,3 +85,25 @@ export interface HealthCheckData {
     tools?: { status: string; details: Record<string, any> };
   };
 }
+
+export interface WorkflowStep {
+  id: string;
+  step_id: string;
+  sequence: number;
+  agent_name: string;
+  tool_name: string;
+  status: string;
+  error?: string | null;
+  requires_approval: boolean;
+  approval_id?: string | null;
+}
+
+export interface Workflow {
+  id: string;
+  name: string;
+  goal: string;
+  status: string;
+  error?: string | null;
+  steps: WorkflowStep[];
+}
+

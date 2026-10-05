@@ -152,6 +152,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         if not tool_registry.get(tool.name):
             tool_registry.register(tool)
             logger.info(f"Registered {tool.name}.")
+            
+    from app.tools.workflow.tools import PlanAndExecuteWorkflowTool
+    if not tool_registry.get(PlanAndExecuteWorkflowTool.name):
+        tool_registry.register(PlanAndExecuteWorkflowTool())
+        logger.info("Registered plan_and_execute_workflow tool.")
 
     yield
 

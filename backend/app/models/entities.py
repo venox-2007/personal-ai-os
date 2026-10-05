@@ -156,3 +156,40 @@ class CalendarEventModel(Base):
     ics_uid = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=utc_now, nullable=False)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+
+
+class WorkflowModel(Base):
+    __tablename__ = "workflows"
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    goal = Column(Text, nullable=False)
+    status = Column(String(32), default="PENDING", nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+    completed_at = Column(DateTime, nullable=True)
+    error = Column(Text, nullable=True)
+    synthesis_result = Column(Text, nullable=True)
+
+    steps = relationship("WorkflowStepModel", back_populates="workflow", cascade="all, delete-orphan", order_by="WorkflowStepModel.sequence")
+
+class WorkflowStepModel(Base):
+    __tablename__ = "workflow_steps"
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    workflow_id = Column(String(36), ForeignKey("workflows.id", ondelete="CASCADE"), nullable=False)
+    step_id = Column(String(64), nullable=False)
+    sequence = Column(Integer, nullable=False)
+    agent_name = Column(String(64), nullable=False)
+    tool_name = Column(String(64), nullable=False)
+    input_mapping_json = Column(Text, nullable=False, default="{}")
+    depends_on_json = Column(Text, nullable=False, default="[]")
+    status = Column(String(32), default="PENDING", nullable=False)
+    error = Column(Text, nullable=True)
+    started_at = Column(DateTime, nullable=True)
+    completed_at = Column(DateTime, nullable=True)
+    requires_approval = Column(Boolean, default=False, nullable=False)
+    on_failure = Column(String(32), default="FAIL", nullable=False)
+    output_json = Column(Text, nullable=True)
+    approval_id = Column(String(36), nullable=True)
+
+    workflow = relationship("WorkflowModel", back_populates="steps")

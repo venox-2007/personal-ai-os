@@ -515,6 +515,22 @@ class Orchestrator:
                 f"I didn't execute `{req.tool_name}` because you rejected the authorization request."
                 + (f" (Reason: {reason})" if reason else "")
             )
+            
+            # --- NEW: Workflow Hook ---
+            context_data = req.execution_context or {}
+            workflow_id = context_data.get("workflow_id")
+            if workflow_id:
+                from app.workflows.orchestrator import workflow_orchestrator
+                await workflow_orchestrator.resume_step_after_approval(
+                    workflow_id=workflow_id,
+                    step_id=context_data.get("step_id"),
+                    approved=False,
+                    tool_result=None,
+                    reason=reason
+                )
+                return conv_id, f"Action '{req.tool_name}' was rejected in workflow.", activities, executed_tool_calls, "rejected", req
+            # --------------------------
+            
             await self.memory.conversation.add_message(conv_id, "assistant", rejection_text)
             return conv_id, rejection_text, activities, executed_tool_calls, "rejected", req
 
@@ -619,6 +635,23 @@ class Orchestrator:
 
         # Reconstruct preserved messages context to continue LLM generation
         context_data = req.execution_context or {}
+        
+        # --- NEW: Workflow Hook ---
+        workflow_id = context_data.get("workflow_id")
+        if workflow_id:
+            from app.workflows.orchestrator import workflow_orchestrator
+            await workflow_orchestrator.resume_step_after_approval(
+                workflow_id=workflow_id,
+                step_id=context_data.get("step_id"),
+                approved=approved,
+                tool_result=tool_result if approved else None,
+                reason=reason
+            )
+            status_str = "completed" if approved else "rejected"
+            msg = f"Action '{tool.name}' was approved and workflow resumed." if approved else f"Action '{tool.name}' was rejected."
+            return conv_id, msg, activities, executed_tool_calls, status_str, req
+        # --------------------------
+        
         raw_msgs = context_data.get("messages", [])
         tc_dict = context_data.get("tc", {})
 

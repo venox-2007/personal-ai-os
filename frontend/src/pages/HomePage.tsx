@@ -3,6 +3,7 @@ import { ChatArea } from "../components/ChatArea";
 import { ChatMessage } from "../types";
 import { Search, Compass, GraduationCap, Code2, ShieldCheck, Sparkles, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { WorkflowProgress } from "../components/WorkflowProgress";
 
 interface HomePageProps {
   messages: ChatMessage[];
@@ -235,8 +236,9 @@ export const HomePage: React.FC<HomePageProps> = ({
   }
 
   return (
-    <div className="flex-1 flex h-full overflow-hidden justify-center bg-background">
-      <div className="max-w-4xl w-full flex-1">
+    <div className="flex-1 flex h-full overflow-hidden justify-center bg-background relative">
+      <WorkflowProgress />
+      <div className="max-w-4xl w-full flex-1 relative">
         <ChatArea
           messages={messages}
           isLoading={isLoading}

@@ -9,6 +9,8 @@ from app.models.entities import (
     ApprovalRequestModel,
     SettingModel,
     CalendarEventModel,
+    WorkflowModel,
+    WorkflowStepModel,
 )
 
 __all__ = [
@@ -20,4 +22,6 @@ __all__ = [
     "ApprovalRequestModel",
     "SettingModel",
     "CalendarEventModel",
+    "WorkflowModel",
+    "WorkflowStepModel",
 ]
