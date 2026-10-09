@@ -200,10 +200,52 @@ class Orchestrator:
             await self.memory.conversation.add_message(conv_id, "assistant", final_text)
             return conv_id, final_text, activities, executed_tool_calls, "completed", None
 
-        # Step 2.7: Deterministic conversational classifier
-        from app.services.intent_classifier import is_conversational_request
-        is_conv = is_conversational_request(message)
+        # Step 2.6: Deterministic read-only fast path
+        from app.services.intent_classifier import get_readonly_fast_path, is_conversational_request
+        fast_path = get_readonly_fast_path(message)
         
+        if fast_path == "calendar_upcoming":
+            from app.services.calendar_service import calendar_service
+            # Limit to 10 upcoming events
+            events = calendar_service.get_upcoming_events(limit=10)
+            
+            tool_definitions = None
+            if not events:
+                final_text = "You have no upcoming events scheduled."
+                activities.append(
+                    AgentActivityEvent(
+                        agent="Orchestrator",
+                        activity_type=ActivityType.COMPLETED,
+                        status=ActivityStatus.SUCCESS,
+                        action="Handled empty calendar request",
+                        description="Fetched calendar directly. No events found.",
+                    )
+                )
+                await self.memory.conversation.add_message(conv_id, "assistant", final_text)
+                return conv_id, final_text, activities, executed_tool_calls, "completed", None
+            else:
+                events_str = ""
+                for e in events:
+                    start = e.start_datetime.strftime("%Y-%m-%d %H:%M") if e.start_datetime else "TBD"
+                    events_str += f"- {e.title} ({start})\n"
+                    
+                final_text = f"Here are your upcoming calendar events:\n\n{events_str}"
+                
+                activities.append(
+                    AgentActivityEvent(
+                        agent="Orchestrator",
+                        activity_type=ActivityType.COMPLETED,
+                        status=ActivityStatus.SUCCESS,
+                        action="Routed to read-only fast-path",
+                        description="Request classified as read-only calendar query. Fetched data directly.",
+                    )
+                )
+                await self.memory.conversation.add_message(conv_id, "assistant", final_text)
+                return conv_id, final_text, activities, executed_tool_calls, "completed", None
+        else:
+            is_conv = is_conversational_request(message)
+        
+        # Step 2.7: Deterministic conversational classifier
         if is_conv:
             # Bypass tool schemas and prevent CoT generation for trivial questions
             tool_definitions = None
@@ -222,7 +264,7 @@ class Orchestrator:
                     description="Request classified as general knowledge. Bypassing tool schemas and reasoning.",
                 )
             )
-        else:
+        elif not fast_path:
             # Step 3: Collect available tool schemas from ToolRegistry
             all_tools = self.tools.list_tools()
             tool_definitions = [t.to_llm_tool_definition() for t in all_tools]
