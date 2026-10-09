@@ -197,13 +197,16 @@ class MemoryService:
         
         q = db.query(MemoryModel).filter(MemoryModel.is_archived == False)
         
-        # If we have tokens, filter DB to only load potentially relevant ones to save memory
-        if tokens:
-            filters = [MemoryModel.content.ilike(f"%{query}%")] # Exact phrase match
-            for t in tokens[:10]: # Max 10 tokens to prevent huge SQL
-                filters.append(MemoryModel.content.ilike(f"%{t}%"))
-                filters.append(MemoryModel.category.ilike(f"%{t}%"))
-            q = q.filter(or_(*filters))
+        # Escape SQL wildcards
+        safe_query = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        filters = [MemoryModel.content.ilike(f"%{safe_query}%", escape="\\")]
+        
+        for t in tokens[:10]: # Max 10 tokens to prevent huge SQL
+            safe_t = t.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            filters.append(MemoryModel.content.ilike(f"%{safe_t}%", escape="\\"))
+            filters.append(MemoryModel.category.ilike(f"%{safe_t}%", escape="\\"))
+            
+        q = q.filter(or_(*filters)).limit(200) # Bound DB fetch
             
         memories = q.all()
         

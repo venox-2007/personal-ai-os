@@ -39,8 +39,11 @@ class MemoryContextBuilder:
             category_label = f"[{mem.category}] " if mem.category else ""
             type_label = f"({mem.memory_type}) "
             
+            # Strip spoofing tags
+            safe_content = mem.content.replace("<USER_MEMORY>", "").replace("</USER_MEMORY>", "")
+            
             # Format: [Category] (TYPE) Content...
-            entry = f"- {category_label}{type_label}{mem.content}"
+            entry = f"- {category_label}{type_label}{safe_content}"
             
             # Check if this entry would exceed our budget
             if current_len + len(entry) > self.max_chars:
