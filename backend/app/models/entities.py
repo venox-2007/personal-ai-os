@@ -199,3 +199,20 @@ class WorkflowStepModel(Base):
     approval_id = Column(String(36), nullable=True)
 
     workflow = relationship("WorkflowModel", back_populates="steps")
+
+class RecommendationModel(Base):
+    """Proactive recommendation model."""
+    __tablename__ = "recommendations"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    category = Column(String(64), nullable=False)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    reason = Column(Text, nullable=False)
+    priority = Column(Integer, nullable=False, default=1)
+    status = Column(String(32), nullable=False, default="active")  # active, dismissed, completed, expired
+    deduplication_key = Column(String(255), nullable=False, unique=True, index=True)
+    suggested_agent = Column(String(64), nullable=True)
+    suggested_workflow_goal = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    due_at = Column(DateTime, nullable=True)
