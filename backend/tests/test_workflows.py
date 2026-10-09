@@ -161,3 +161,41 @@ async def test_orchestrator_approval_pause():
         assert wf_paused.status == "WAITING_APPROVAL"
         assert wf_paused.steps[0].status == "WAITING_APPROVAL"
         assert wf_paused.steps[0].approval_id is not None
+
+def test_workflow_cancellation_rejects_approvals():
+    from app.api.routes.workflows import cancel_workflow
+    from app.services.approval_service import approval_service
+    from app.models.entities import ApprovalRequestModel
+    from app.database.session import SessionLocal
+    from app.models.entities import WorkflowModel, WorkflowStepModel
+    import uuid
+    from datetime import datetime
+    
+    wf_id = str(uuid.uuid4())
+    step_id = str(uuid.uuid4())
+    appr_id = str(uuid.uuid4())
+    
+    with SessionLocal() as db:
+        from app.permissions.levels import PermissionLevel
+        appr = approval_service.create_request(tool_name="calendar_create_event", permission_level=PermissionLevel.LEVEL_2_EXTERNAL_SIDE_EFFECT, action_description="test", arguments={})
+        appr_id = appr.id
+        
+        wf = WorkflowModel(id=wf_id, name="Test Cancel", goal="test", status="WAITING_APPROVAL")
+        db.add(wf)
+        
+        step = WorkflowStepModel(id=step_id, workflow_id=wf_id, step_id="s1", sequence=0, agent_name="agent", tool_name="calendar_create_event", input_mapping_json="{}", depends_on_json="[]", status="WAITING_APPROVAL", approval_id=appr_id)
+        db.add(step)
+        db.commit()
+    
+    cancel_workflow(wf_id)
+    
+    with SessionLocal() as db:
+        wf_check = db.query(WorkflowModel).filter(WorkflowModel.id == wf_id).first()
+        assert wf_check.status == "CANCELLED"
+        
+        step_check = db.query(WorkflowStepModel).filter(WorkflowStepModel.id == step_id).first()
+        assert step_check.status == "CANCELLED"
+        
+        appr_check = db.query(ApprovalRequestModel).filter(ApprovalRequestModel.id == appr_id).first()
+        assert appr_check.status == "rejected"
+

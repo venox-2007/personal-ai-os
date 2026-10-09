@@ -9,6 +9,7 @@ from app.schemas.workflow import WorkflowResponse, WorkflowStepResponse, Workflo
 from app.workflows.orchestrator import workflow_orchestrator
 from app.workflows.planner import WorkflowPlanner
 from app.orchestrator.orchestrator import orchestrator
+from app.services.approval_service import approval_service
 
 router = APIRouter(prefix="/workflows", tags=["Workflows"])
 
@@ -51,6 +52,19 @@ def cancel_workflow(workflow_id: str):
             raise HTTPException(status_code=404, detail="Workflow not found")
         if wf.status in ["PENDING", "RUNNING", "WAITING_APPROVAL"]:
             wf.status = "CANCELLED"
+            
+            # Ensure no unintended mutations run if approved later
+            for step in wf.steps:
+                print(f"STEP: {step.step_id} - {step.status} - {step.approval_id}")
+                if step.status == "WAITING_APPROVAL" and step.approval_id:
+                    print(f"Cancelling approval {step.approval_id}")
+                    try:
+                        approval_service.reject_request(step.approval_id, reason="Workflow cancelled")
+                        print("Successfully rejected")
+                    except Exception as e:
+                        print(f"FAILED to reject: {e}")
+                    step.status = "CANCELLED"
+            
             db.commit()
             return {"message": "Cancelled"}
         else:
