@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { NavItem } from "../components/Sidebar";
 import { DesktopTopBar } from "../components/DesktopTopBar";
 import { DesktopDock } from "../components/DesktopDock";
 import { ActivityPanel } from "../components/ActivityPanel";
@@ -7,8 +6,6 @@ import { HealthCheckData, AgentActivityEvent } from "../types";
 import { X } from "lucide-react";
 
 interface AppLayoutProps {
-  activeTab: NavItem;
-  onSelectTab: (tab: NavItem) => void;
   health: HealthCheckData | null;
   activities: AgentActivityEvent[];
   isLoading: boolean;
@@ -16,8 +13,6 @@ interface AppLayoutProps {
 }
 
 export const AppLayout: React.FC<AppLayoutProps> = ({
-  activeTab,
-  onSelectTab,
   health,
   activities,
   isLoading,
@@ -45,14 +40,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           onToggleActivity={() => setIsActivityOpen(!isActivityOpen)} 
         />
         
-        <main className="flex-1 overflow-hidden relative flex flex-col p-4">
-          {/* Main Content Area Container - Glassy Panel for Apps */}
-          <div className="flex-1 w-full h-full bg-surface/80 backdrop-blur-md rounded-2xl shadow-2xl border border-white/5 overflow-hidden flex flex-col relative pb-4">
-            {children}
-          </div>
+        <main className="flex-1 overflow-hidden relative">
+          {children}
         </main>
         
-        <DesktopDock activeTab={activeTab} onSelectTab={onSelectTab} />
+        <DesktopDock />
         
         {/* Activity Drawer - Updated for Dark Theme */}
         {isActivityOpen && (

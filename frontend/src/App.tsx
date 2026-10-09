@@ -1,20 +1,11 @@
 import { useState, useEffect } from "react";
 import { AppLayout } from "./layouts/AppLayout";
-import { DesktopOverview } from "./pages/DesktopOverview";
-import { HomePage } from "./pages/HomePage";
-import { PlaceholderView } from "./pages/PlaceholderView";
-import { FilesView } from "./pages/FilesView";
-import { StudyView } from "./pages/StudyView";
-import { CodingView } from "./pages/CodingView";
-import { ResearchView } from "./pages/ResearchView";
-import { CalendarView } from "./pages/CalendarView";
-import { MemoryView } from "./pages/MemoryView";
-import { NavItem } from "./components/Sidebar";
+import { WindowProvider } from "./lib/WindowContext";
+import { WindowManager } from "./components/WindowManager";
 import { ChatMessage, AgentActivityEvent, HealthCheckData } from "./types";
 import { checkHealth, sendChatMessage, approveAction, rejectAction } from "./api/client";
 
-export function App() {
-  const [activeTab, setActiveTab] = useState<NavItem>("desktop");
+export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activities, setActivities] = useState<AgentActivityEvent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -65,13 +56,14 @@ export function App() {
       };
 
       setMessages((prev) => [...prev, assistantMsg]);
-      // Update global activity feed
-      setActivities((prev) => [...res.activities, ...prev]);
+      if (res.activities && res.activities.length > 0) {
+        setActivities((prev) => [...res.activities, ...prev]);
+      }
     } catch (err: any) {
       const errorMsg: ChatMessage = {
         id: `err_${Date.now()}`,
         role: "assistant",
-        content: `⚠️ Failed to contact Orchestrator: ${err.message || "Unknown error"}`,
+        content: `❌ Failed to contact Orchestrator: ${err.message || "Unknown error"}`,
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -167,17 +159,13 @@ export function App() {
   };
 
   return (
-    <AppLayout 
-      activeTab={activeTab} 
-      onSelectTab={setActiveTab} 
-      health={health}
-      activities={activities}
-      isLoading={isLoading}
-    >
-      {activeTab === "desktop" ? (
-        <DesktopOverview onSelectTab={setActiveTab} recentActivities={activities} />
-      ) : activeTab === "home" ? (
-        <HomePage
+    <WindowProvider>
+      <AppLayout
+        health={health}
+        activities={activities}
+        isLoading={isLoading}
+      >
+        <WindowManager
           messages={messages}
           activities={activities}
           isLoading={isLoading}
@@ -186,23 +174,7 @@ export function App() {
           onApproveAction={handleApproveAction}
           onRejectAction={handleRejectAction}
         />
-      ) : activeTab === "files" ? (
-        <FilesView />
-      ) : activeTab === "study" ? (
-        <StudyView />
-      ) : activeTab === "calendar" ? (
-        <CalendarView onSendMessage={handleSendMessage} onSelectTab={setActiveTab} />
-      ) : activeTab === "coding" ? (
-        <CodingView />
-      ) : activeTab === "research" ? (
-        <ResearchView />
-      ) : activeTab === "memory" ? (
-        <MemoryView />
-      ) : (
-        <PlaceholderView tab={activeTab} />
-      )}
-    </AppLayout>
+      </AppLayout>
+    </WindowProvider>
   );
 }
-
-export default App;
