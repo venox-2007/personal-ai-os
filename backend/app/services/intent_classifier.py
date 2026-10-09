@@ -81,11 +81,11 @@ def get_readonly_fast_path(text: str) -> str | None:
         "what's my next meeting"
     ]
     
-    # Check exact match or very close match (stripping punctuation)
-    clean_text = re.sub(r'[^\w\s]', '', text_lower).strip()
+    # Check exact match or very close match (stripping punctuation and collapsing spaces)
+    clean_text = re.sub(r'\s+', ' ', re.sub(r'[^\w\s]', '', text_lower)).strip()
     
     for phrase in calendar_read_phrases:
-        clean_phrase = re.sub(r'[^\w\s]', '', phrase).strip()
+        clean_phrase = re.sub(r'\s+', ' ', re.sub(r'[^\w\s]', '', phrase)).strip()
         if clean_text == clean_phrase:
             return "calendar_upcoming"
             

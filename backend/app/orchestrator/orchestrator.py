@@ -95,6 +95,66 @@ class Orchestrator:
         # Record incoming message in conversation memory
         await self.memory.conversation.add_message(conv_id, "user", message)
 
+        # Step 0.5: LLM-free fast paths (Trivial greetings & Read-only data fetches)
+        msg_lower = message.strip().lower()
+        if msg_lower in ("hi", "hello", "hey", "hi!", "hello!", "hey!", "greetings", "hello again", "hi there"):
+            final_text = "Hello! I'm your Personal AI OS Assistant. How can I help you today?"
+            activities.append(
+                AgentActivityEvent(
+                    agent="Orchestrator",
+                    activity_type=ActivityType.COMPLETED,
+                    status=ActivityStatus.SUCCESS,
+                    action="Handled trivial greeting",
+                    description="Responded directly without invoking model or tools to save latency.",
+                )
+            )
+            await self.memory.conversation.add_message(conv_id, "assistant", final_text)
+            return conv_id, final_text, activities, executed_tool_calls, "completed", None
+            
+        from app.services.intent_classifier import get_readonly_fast_path, is_conversational_request
+        fast_path = get_readonly_fast_path(message)
+        
+        if fast_path == "calendar_upcoming":
+            try:
+                from app.services.calendar_service import calendar_service
+                # Limit to 10 upcoming events
+                events = calendar_service.get_upcoming_events(limit=10)
+                
+                if not events:
+                    final_text = "You have no upcoming events scheduled."
+                    activities.append(
+                        AgentActivityEvent(
+                            agent="Orchestrator",
+                            activity_type=ActivityType.COMPLETED,
+                            status=ActivityStatus.SUCCESS,
+                            action="Handled empty calendar request",
+                            description="Fetched calendar directly. No events found.",
+                        )
+                    )
+                else:
+                    events_str = ""
+                    for e in events:
+                        start = e.start_datetime.strftime("%Y-%m-%d %H:%M") if e.start_datetime else "TBD"
+                        events_str += f"- {e.title} ({start})\n"
+                        
+                    final_text = f"Here are your upcoming calendar events:\n\n{events_str}"
+                    
+                    activities.append(
+                        AgentActivityEvent(
+                            agent="Orchestrator",
+                            activity_type=ActivityType.COMPLETED,
+                            status=ActivityStatus.SUCCESS,
+                            action="Routed to read-only fast-path",
+                            description="Request classified as read-only calendar query. Fetched data directly.",
+                        )
+                    )
+                await self.memory.conversation.add_message(conv_id, "assistant", final_text)
+                return conv_id, final_text, activities, executed_tool_calls, "completed", None
+            except Exception as e:
+                logger.error(f"Calendar fast-path failed: {e}", exc_info=True)
+                # Fall through to normal tool routing which will gracefully report the tool execution error
+                pass
+
         # Step 1: Check LLM Provider & Model Availability
         try:
             model_status = await self.llm.check_model_status()
@@ -183,67 +243,9 @@ class Orchestrator:
         # Ensure current user message is at the end if not already present
         if not messages or messages[-1].content != message or messages[-1].role != "user":
             messages.append(LLMMessage(role="user", content=message))
-
-        # Step 2.5: Fast-path for trivial greetings
-        msg_lower = message.strip().lower()
-        if msg_lower in ("hi", "hello", "hey", "hi!", "hello!", "hey!", "greetings", "hello again", "hi there"):
-            final_text = "Hello! I'm your Personal AI OS Assistant. How can I help you today?"
-            activities.append(
-                AgentActivityEvent(
-                    agent="Orchestrator",
-                    activity_type=ActivityType.COMPLETED,
-                    status=ActivityStatus.SUCCESS,
-                    action="Handled trivial greeting",
-                    description="Responded directly without invoking model or tools to save latency.",
-                )
-            )
-            await self.memory.conversation.add_message(conv_id, "assistant", final_text)
-            return conv_id, final_text, activities, executed_tool_calls, "completed", None
-
-        # Step 2.6: Deterministic read-only fast path
-        from app.services.intent_classifier import get_readonly_fast_path, is_conversational_request
-        fast_path = get_readonly_fast_path(message)
-        
-        if fast_path == "calendar_upcoming":
-            from app.services.calendar_service import calendar_service
-            # Limit to 10 upcoming events
-            events = calendar_service.get_upcoming_events(limit=10)
             
-            tool_definitions = None
-            if not events:
-                final_text = "You have no upcoming events scheduled."
-                activities.append(
-                    AgentActivityEvent(
-                        agent="Orchestrator",
-                        activity_type=ActivityType.COMPLETED,
-                        status=ActivityStatus.SUCCESS,
-                        action="Handled empty calendar request",
-                        description="Fetched calendar directly. No events found.",
-                    )
-                )
-                await self.memory.conversation.add_message(conv_id, "assistant", final_text)
-                return conv_id, final_text, activities, executed_tool_calls, "completed", None
-            else:
-                events_str = ""
-                for e in events:
-                    start = e.start_datetime.strftime("%Y-%m-%d %H:%M") if e.start_datetime else "TBD"
-                    events_str += f"- {e.title} ({start})\n"
-                    
-                final_text = f"Here are your upcoming calendar events:\n\n{events_str}"
-                
-                activities.append(
-                    AgentActivityEvent(
-                        agent="Orchestrator",
-                        activity_type=ActivityType.COMPLETED,
-                        status=ActivityStatus.SUCCESS,
-                        action="Routed to read-only fast-path",
-                        description="Request classified as read-only calendar query. Fetched data directly.",
-                    )
-                )
-                await self.memory.conversation.add_message(conv_id, "assistant", final_text)
-                return conv_id, final_text, activities, executed_tool_calls, "completed", None
-        else:
-            is_conv = is_conversational_request(message)
+        from app.services.intent_classifier import is_conversational_request
+        is_conv = is_conversational_request(message)
         
         # Step 2.7: Deterministic conversational classifier
         if is_conv:
@@ -264,7 +266,7 @@ class Orchestrator:
                     description="Request classified as general knowledge. Bypassing tool schemas and reasoning.",
                 )
             )
-        elif not fast_path:
+        else:
             # Step 3: Collect available tool schemas from ToolRegistry
             all_tools = self.tools.list_tools()
             tool_definitions = [t.to_llm_tool_definition() for t in all_tools]
