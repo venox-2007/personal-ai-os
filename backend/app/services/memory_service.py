@@ -176,8 +176,6 @@ class MemoryService:
         if not include_archived:
             q = q.filter(MemoryModel.is_archived == False)
             
-        # Basic deterministic search using LIKE
-        # Using parameterized query via SQLAlchemy
         search_term = f"%{query}%"
         q = q.filter(or_(
             MemoryModel.content.ilike(search_term),
@@ -185,5 +183,72 @@ class MemoryService:
         ))
         
         return q.order_by(desc(MemoryModel.importance), desc(MemoryModel.created_at)).limit(min(limit, 100)).all()
+
+    def retrieve_relevant_memories(self, db: Session, query: str, limit: int = 5) -> List[MemoryModel]:
+        if not query or not query.strip():
+            return []
+            
+        query = query.strip().lower()
+        if len(query) > 500:
+            query = query[:500]
+            
+        # Tokenize query for meaningful words (length > 3)
+        tokens = [t for t in re.split(r'\W+', query) if len(t) > 3]
+        
+        q = db.query(MemoryModel).filter(MemoryModel.is_archived == False)
+        
+        # If we have tokens, filter DB to only load potentially relevant ones to save memory
+        if tokens:
+            filters = [MemoryModel.content.ilike(f"%{query}%")] # Exact phrase match
+            for t in tokens[:10]: # Max 10 tokens to prevent huge SQL
+                filters.append(MemoryModel.content.ilike(f"%{t}%"))
+                filters.append(MemoryModel.category.ilike(f"%{t}%"))
+            q = q.filter(or_(*filters))
+            
+        memories = q.all()
+        
+        scored_memories = []
+        now = utc_now()
+        
+        for mem in memories:
+            score = 0.0
+            content_lower = mem.content.lower()
+            category_lower = mem.category.lower() if mem.category else ""
+            
+            # Exact phrase match
+            if query in content_lower:
+                score += 5.0
+                
+            # Token overlap
+            overlap_count = 0
+            for t in tokens:
+                if t in content_lower:
+                    overlap_count += 1
+                if category_lower and t in category_lower:
+                    overlap_count += 1.5
+                    
+            if overlap_count > 0:
+                score += overlap_count
+                
+            # Base importance
+            score += mem.importance * 2.0
+            
+            # Recency tie-breaker (max 0.5 points for very recent)
+            mem_dt = mem.created_at
+            if mem_dt.tzinfo is None:
+                mem_dt = mem_dt.replace(tzinfo=timezone.utc)
+            
+            age_days = (now - mem_dt).total_seconds() / 86400.0
+            recency_bonus = max(0.0, 0.5 - (age_days * 0.01))
+            score += recency_bonus
+            
+            # Only include if there's actual lexical relevance (overlap > 0 or exact match)
+            if query in content_lower or overlap_count > 0:
+                scored_memories.append((score, mem))
+                
+        # Sort by score descending
+        scored_memories.sort(key=lambda x: x[0], reverse=True)
+        
+        return [m for score, m in scored_memories[:limit]]
 
 memory_service = MemoryService()

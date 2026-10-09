@@ -151,8 +151,26 @@ class Orchestrator:
 
         # Step 2: Build Context & Messages History
         history = await self.memory.conversation.get_messages(conv_id, limit=10)
+        
+        # Phase 9B: Retrieve relevant semantic memories and inject into context
+        try:
+            from app.database.session import SessionLocal
+            from app.services.memory_service import memory_service
+            from app.services.memory_context_builder import memory_context_builder
+            
+            with SessionLocal() as db:
+                relevant_memories = memory_service.retrieve_relevant_memories(db, message, limit=5)
+                memory_context = memory_context_builder.build_context(relevant_memories)
+                
+            system_content = SYSTEM_ORCHESTRATOR_PROMPT
+            if memory_context:
+                system_content = f"{SYSTEM_ORCHESTRATOR_PROMPT}\n\n{memory_context}"
+        except Exception as e:
+            logger.error(f"Failed to retrieve memory context: {e}", exc_info=True)
+            system_content = SYSTEM_ORCHESTRATOR_PROMPT
+
         messages: List[LLMMessage] = [
-            LLMMessage(role="system", content=SYSTEM_ORCHESTRATOR_PROMPT)
+            LLMMessage(role="system", content=system_content)
         ]
 
         for h in history:
