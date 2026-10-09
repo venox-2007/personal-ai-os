@@ -200,20 +200,43 @@ class Orchestrator:
             await self.memory.conversation.add_message(conv_id, "assistant", final_text)
             return conv_id, final_text, activities, executed_tool_calls, "completed", None
 
-        # Step 3: Collect available tool schemas from ToolRegistry
-        all_tools = self.tools.list_tools()
-        tool_definitions = [t.to_llm_tool_definition() for t in all_tools]
-
-        activities.append(
-            AgentActivityEvent(
-                agent="Orchestrator",
-                activity_type=ActivityType.PLANNING,
-                status=ActivityStatus.SUCCESS,
-                action="Analyzed request and prepared execution plan",
-                description=f"Discovered {len(all_tools)} tools. Dispatched prompt to {self.llm.provider_name}.",
-                metadata={"available_tools": [t.name for t in all_tools]},
+        # Step 2.7: Deterministic conversational classifier
+        from app.services.intent_classifier import is_conversational_request
+        is_conv = is_conversational_request(message)
+        
+        if is_conv:
+            # Bypass tool schemas and prevent CoT generation for trivial questions
+            tool_definitions = None
+            system_content += (
+                "\n\n[SYSTEM DIRECTIVE]: This is a direct conversational or general knowledge query. "
+                "Respond directly and immediately. Do NOT use <think> tags, chain-of-thought, or internal reasoning."
             )
-        )
+            messages[0] = LLMMessage(role="system", content=system_content)
+            
+            activities.append(
+                AgentActivityEvent(
+                    agent="Orchestrator",
+                    activity_type=ActivityType.PLANNING,
+                    status=ActivityStatus.SUCCESS,
+                    action="Routed to conversational fast-path",
+                    description="Request classified as general knowledge. Bypassing tool schemas and reasoning.",
+                )
+            )
+        else:
+            # Step 3: Collect available tool schemas from ToolRegistry
+            all_tools = self.tools.list_tools()
+            tool_definitions = [t.to_llm_tool_definition() for t in all_tools]
+    
+            activities.append(
+                AgentActivityEvent(
+                    agent="Orchestrator",
+                    activity_type=ActivityType.PLANNING,
+                    status=ActivityStatus.SUCCESS,
+                    action="Analyzed request and prepared execution plan",
+                    description=f"Discovered {len(all_tools)} tools. Dispatched prompt to {self.llm.provider_name}.",
+                    metadata={"available_tools": [t.name for t in all_tools]},
+                )
+            )
 
         # Step 4: Multi-Step Tool Execution Loop
         iteration = 0
