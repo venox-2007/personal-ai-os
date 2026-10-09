@@ -10,15 +10,16 @@ export default {
         sans: ['Inter', 'sans-serif'],
       },
       colors: {
-        background: "#f9fafb", // slate-50
+        background: "#0f1115", // near-black surface
         surface: {
-          DEFAULT: "#ffffff",
-          secondary: "#f1f5f9", // slate-100
-          border: "#e2e8f0",    // slate-200
+          DEFAULT: "#181a20",  // deep charcoal
+          secondary: "#232630", // slightly lighter charcoal
+          border: "#303440",    // subdued border
         },
         brand: {
           50: "#eff6ff",
           100: "#dbeafe",
+          400: "#60a5fa",
           500: "#3b82f6",
           600: "#2563eb",
           700: "#1d4ed8",

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { AppLayout } from "./layouts/AppLayout";
+import { DesktopOverview } from "./pages/DesktopOverview";
 import { HomePage } from "./pages/HomePage";
 import { PlaceholderView } from "./pages/PlaceholderView";
 import { FilesView } from "./pages/FilesView";
@@ -13,7 +14,7 @@ import { ChatMessage, AgentActivityEvent, HealthCheckData } from "./types";
 import { checkHealth, sendChatMessage, approveAction, rejectAction } from "./api/client";
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<NavItem>("home");
+  const [activeTab, setActiveTab] = useState<NavItem>("desktop");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activities, setActivities] = useState<AgentActivityEvent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -173,7 +174,9 @@ export function App() {
       activities={activities}
       isLoading={isLoading}
     >
-      {activeTab === "home" ? (
+      {activeTab === "desktop" ? (
+        <DesktopOverview onSelectTab={setActiveTab} recentActivities={activities} />
+      ) : activeTab === "home" ? (
         <HomePage
           messages={messages}
           activities={activities}

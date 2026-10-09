@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 export type NavItem =
+  | "desktop"
   | "home"
   | "calendar"
   | "tasks"
@@ -21,6 +22,7 @@ export type NavItem =
   | "coding"
   | "files"
   | "memory"
+  | "workflows"
   | "settings";
 
 interface SidebarProps {
