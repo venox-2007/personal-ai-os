@@ -45,9 +45,9 @@ export const DesktopOverview: React.FC<DesktopOverviewProps> = ({ onSelectTab, r
             <button
               key={item.id}
               onClick={() => onSelectTab(item.id as NavItem)}
-              className="flex items-center gap-4 p-4 rounded-2xl bg-slate-800/50 hover:bg-slate-700/50 border border-white/10 transition-all text-left group hover:-translate-y-1 shadow-lg"
+              className="flex items-center gap-4 p-4 rounded-2xl bg-surface-secondary/50 hover:bg-slate-700/50 border border-white/10 transition-all text-left group hover:-translate-y-1 shadow-lg"
             >
-              <div className="w-12 h-12 rounded-xl bg-slate-900/80 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-xl bg-surface/80 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 transition-transform">
                 {item.icon}
               </div>
               <div className="flex flex-col">
@@ -61,7 +61,7 @@ export const DesktopOverview: React.FC<DesktopOverviewProps> = ({ onSelectTab, r
         {/* Bottom Split Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Calendar Widget */}
-          <div className="col-span-1 flex flex-col gap-4 bg-slate-800/30 border border-white/5 p-6 rounded-3xl backdrop-blur-sm">
+          <div className="col-span-1 flex flex-col gap-4 bg-surface-secondary/30 border border-white/5 p-6 rounded-3xl backdrop-blur-sm">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-slate-400" />
@@ -77,10 +77,10 @@ export const DesktopOverview: React.FC<DesktopOverviewProps> = ({ onSelectTab, r
             
             <div className="flex flex-col gap-3 flex-1">
               {loadingEvents ? (
-                <div className="text-sm text-slate-500 animate-pulse">Loading events...</div>
+                <div className="text-sm text-slate-400 animate-pulse">Loading events...</div>
               ) : events.length > 0 ? (
                 events.map(ev => (
-                  <div key={ev.id} className="flex items-start gap-3 p-3 rounded-xl bg-slate-900/50 border border-white/5">
+                  <div key={ev.id} className="flex items-start gap-3 p-3 rounded-xl bg-surface/50 border border-white/5">
                     <div className="flex flex-col items-center justify-center px-3 py-1 bg-brand-500/10 text-brand-400 rounded-lg shrink-0">
                       <span className="text-xs font-bold leading-none">
                         {new Date(ev.start_datetime).getDate()}
@@ -88,39 +88,39 @@ export const DesktopOverview: React.FC<DesktopOverviewProps> = ({ onSelectTab, r
                     </div>
                     <div className="flex flex-col flex-1 min-w-0">
                       <span className="text-sm font-medium text-slate-200 truncate">{ev.title}</span>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-slate-400">
                         {new Date(ev.start_datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="text-sm text-slate-500 py-4 text-center">No upcoming events.</div>
+                <div className="text-sm text-slate-400 py-4 text-center">No upcoming events.</div>
               )}
             </div>
           </div>
 
           {/* Activity Widget */}
-          <div className="col-span-2 flex flex-col gap-4 bg-slate-800/30 border border-white/5 p-6 rounded-3xl backdrop-blur-sm">
+          <div className="col-span-2 flex flex-col gap-4 bg-surface-secondary/30 border border-white/5 p-6 rounded-3xl backdrop-blur-sm">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Clock className="w-4 h-4 text-slate-400" />
               Recent Agent Activity
             </h3>
             <div className="flex flex-col gap-2 overflow-hidden flex-1">
               {recentActivities.slice(0, 4).map((act, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-800/50 transition-colors border border-transparent hover:border-white/5 cursor-default">
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl hover:bg-surface-secondary/50 transition-colors border border-transparent hover:border-white/5 cursor-default">
                   <div className="w-2 h-2 rounded-full shrink-0 bg-brand-500" />
                   <div className="flex flex-col flex-1 min-w-0">
                     <span className="text-sm font-medium text-slate-300 truncate">{act.action}</span>
-                    <span className="text-xs text-slate-500 truncate">{act.description}</span>
+                    <span className="text-xs text-slate-400 truncate">{act.description}</span>
                   </div>
-                  <span className="text-xs text-slate-600 uppercase font-medium tracking-wide">
+                  <span className="text-xs text-slate-400 uppercase font-medium tracking-wide">
                     {act.agent}
                   </span>
                 </div>
               ))}
               {recentActivities.length === 0 && (
-                <div className="text-sm text-slate-500 py-4 text-center">No recent activity.</div>
+                <div className="text-sm text-slate-400 py-4 text-center">No recent activity.</div>
               )}
             </div>
           </div>

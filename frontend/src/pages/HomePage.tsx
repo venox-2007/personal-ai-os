@@ -31,17 +31,17 @@ const HeroSection = ({ input, setInput, onSendMessage }: any) => {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 1, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-50 border border-brand-100 text-brand-700 text-xs font-semibold uppercase tracking-widest mb-4"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-500/10 border border-brand-100 text-brand-700 text-xs font-semibold uppercase tracking-widest mb-4"
         >
           <Sparkles className="w-3.5 h-3.5" />
           <span>Personal AI OS 2.0</span>
         </motion.div>
         
-        <h1 className="text-5xl md:text-7xl font-bold text-slate-900 tracking-tight leading-[1.1]">
-          The future of productivity is <span className="text-brand-600">human + AI</span>
+        <h1 className="text-5xl md:text-7xl font-bold text-white tracking-tight leading-[1.1]">
+          The future of productivity is <span className="text-brand-400">human + AI</span>
         </h1>
         
-        <p className="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto leading-relaxed mt-6">
+        <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed mt-6">
           Your personal local-first intelligence. We help you research, study, write code, and manage your files without sacrificing privacy.
         </p>
         
@@ -53,12 +53,12 @@ const HeroSection = ({ input, setInput, onSendMessage }: any) => {
         >
           <div className="relative group">
             <div className="absolute inset-0 bg-brand-500/10 rounded-2xl blur-xl transition-all duration-500 group-focus-within:bg-brand-500/20 group-focus-within:blur-2xl" />
-            <div className="relative bg-white shadow-xl shadow-slate-200/50 rounded-2xl border border-slate-200 flex items-center p-3 transition-all duration-300 group-focus-within:border-brand-500 group-focus-within:ring-4 group-focus-within:ring-brand-500/10 hover:border-slate-300">
-              <Search className="w-6 h-6 text-slate-400 ml-4 shrink-0 transition-colors group-focus-within:text-brand-600" />
+            <div className="relative bg-surface shadow-xl shadow-black/50 rounded-2xl border border-surface-border flex items-center p-3 transition-all duration-300 group-focus-within:border-brand-500 group-focus-within:ring-4 group-focus-within:ring-brand-500/10 hover:border-surface-border">
+              <Search className="w-6 h-6 text-slate-400 ml-4 shrink-0 transition-colors group-focus-within:text-brand-400" />
               <input 
                 type="text" 
                 placeholder="Ask anything or tell me what you need to do..."
-                className="flex-1 bg-transparent border-none outline-none px-5 py-4 text-lg text-slate-800 placeholder:text-slate-400 font-medium"
+                className="flex-1 bg-transparent border-none outline-none px-5 py-4 text-lg text-slate-200 placeholder:text-slate-400 font-medium"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
@@ -88,7 +88,7 @@ const HeroSection = ({ input, setInput, onSendMessage }: any) => {
               <button 
                 key={i}
                 onClick={() => onSendMessage(suggestion)}
-                className="px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-600 hover:text-brand-700 hover:border-brand-300 hover:bg-brand-50 transition-all shadow-sm"
+                className="px-4 py-2 bg-surface border border-surface-border rounded-full text-sm font-medium text-slate-400 hover:text-brand-700 hover:border-brand-300 hover:bg-brand-500/10 transition-all shadow-sm"
               >
                 {suggestion}
               </button>
@@ -102,7 +102,7 @@ const HeroSection = ({ input, setInput, onSendMessage }: any) => {
 
 const FeatureSection = ({ icon: Icon, title, description, reverse, children }: any) => {
   return (
-    <div className="py-24 border-t border-slate-200 bg-background overflow-hidden">
+    <div className="py-24 border-t border-surface-border bg-background overflow-hidden">
       <div className="max-w-6xl mx-auto px-6">
         <div className={`flex flex-col ${reverse ? 'md:flex-row-reverse' : 'md:flex-row'} items-center gap-16`}>
           <motion.div 
@@ -112,13 +112,13 @@ const FeatureSection = ({ icon: Icon, title, description, reverse, children }: a
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="flex-1 space-y-6"
           >
-            <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 mb-8 border border-brand-100">
+            <div className="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center text-brand-400 mb-8 border border-brand-100">
               <Icon className="w-8 h-8" />
             </div>
-            <h2 className="text-4xl font-bold text-slate-900 tracking-tight leading-tight">
+            <h2 className="text-4xl font-bold text-white tracking-tight leading-tight">
               {title}
             </h2>
-            <p className="text-lg text-slate-500 leading-relaxed max-w-lg">
+            <p className="text-lg text-slate-400 leading-relaxed max-w-lg">
               {description}
             </p>
           </motion.div>
@@ -160,14 +160,14 @@ export const HomePage: React.FC<HomePageProps> = ({
           title="Research without the busywork."
           description="Automate deep web research. The AI searches, extracts evidence, and synthesizes answers with inline citations. No more endless tab switching."
         >
-          <div className="bg-white border border-slate-200 shadow-xl rounded-3xl p-8 transform rotate-1 hover:rotate-0 transition-transform duration-500">
+          <div className="bg-surface border border-surface-border shadow-xl rounded-3xl p-8 transform rotate-1 hover:rotate-0 transition-transform duration-500">
             <div className="space-y-4">
-              <div className="h-4 w-1/3 bg-slate-100 rounded-full" />
-              <div className="h-4 w-full bg-slate-100 rounded-full" />
-              <div className="h-4 w-5/6 bg-slate-100 rounded-full" />
+              <div className="h-4 w-1/3 bg-surface-secondary rounded-full" />
+              <div className="h-4 w-full bg-surface-secondary rounded-full" />
+              <div className="h-4 w-5/6 bg-surface-secondary rounded-full" />
               <div className="flex gap-4 pt-4">
-                <div className="h-24 flex-1 bg-brand-50 rounded-2xl border border-brand-100" />
-                <div className="h-24 flex-1 bg-brand-50 rounded-2xl border border-brand-100" />
+                <div className="h-24 flex-1 bg-brand-500/10 rounded-2xl border border-brand-100" />
+                <div className="h-24 flex-1 bg-brand-500/10 rounded-2xl border border-brand-100" />
               </div>
             </div>
           </div>
@@ -179,17 +179,17 @@ export const HomePage: React.FC<HomePageProps> = ({
           description="Upload thousands of documents. The Study agent securely embeds them locally and answers questions instantly, grounding every answer in your specific material."
           reverse={true}
         >
-          <div className="bg-slate-900 border border-slate-800 shadow-2xl rounded-3xl p-8 transform -rotate-1 hover:rotate-0 transition-transform duration-500">
+          <div className="bg-surface border border-slate-800 shadow-2xl rounded-3xl p-8 transform -rotate-1 hover:rotate-0 transition-transform duration-500">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
                 <div className="w-4 h-4 rounded-full bg-emerald-500" />
               </div>
-              <div className="h-6 w-32 bg-slate-800 rounded-lg" />
+              <div className="h-6 w-32 bg-surface-secondary rounded-lg" />
             </div>
             <div className="space-y-3">
-              <div className="h-3 w-full bg-slate-800 rounded-full" />
-              <div className="h-3 w-full bg-slate-800 rounded-full" />
-              <div className="h-3 w-2/3 bg-slate-800 rounded-full" />
+              <div className="h-3 w-full bg-surface-secondary rounded-full" />
+              <div className="h-3 w-full bg-surface-secondary rounded-full" />
+              <div className="h-3 w-2/3 bg-surface-secondary rounded-full" />
             </div>
           </div>
         </FeatureSection>
@@ -199,14 +199,14 @@ export const HomePage: React.FC<HomePageProps> = ({
           title="Build with your AI."
           description="Point the Coding agent at any local repository. It explores files, finds bugs, suggests architecture, and can even edit files and run tests when you approve."
         >
-          <div className="bg-slate-50 border border-slate-200 shadow-lg rounded-3xl p-6 relative overflow-hidden">
-             <div className="absolute top-0 left-0 right-0 h-10 border-b border-slate-200 flex items-center px-4 gap-2 bg-white">
+          <div className="bg-surface-secondary border border-surface-border shadow-lg rounded-3xl p-6 relative overflow-hidden">
+             <div className="absolute top-0 left-0 right-0 h-10 border-b border-surface-border flex items-center px-4 gap-2 bg-surface">
                 <div className="w-3 h-3 rounded-full bg-red-400" />
                 <div className="w-3 h-3 rounded-full bg-amber-400" />
                 <div className="w-3 h-3 rounded-full bg-emerald-400" />
              </div>
-             <div className="pt-10 font-mono text-xs text-slate-600 space-y-2">
-                <p><span className="text-brand-600">const</span> analyzeRepo = <span className="text-purple-600">async</span> () =&#62; {"{"}</p>
+             <div className="pt-10 font-mono text-xs text-slate-400 space-y-2">
+                <p><span className="text-brand-400">const</span> analyzeRepo = <span className="text-purple-600">async</span> () =&#62; {"{"}</p>
                 <p className="pl-4">await <span className="text-blue-600">tools.readDirectory</span>('./src');</p>
                 <p className="pl-4">return <span className="text-emerald-600">"Architecture understood"</span>;</p>
                 <p>{"}"};</p>
@@ -214,7 +214,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </FeatureSection>
 
-        <div className="py-32 bg-slate-900 text-center px-6 relative overflow-hidden">
+        <div className="py-32 bg-surface text-center px-6 relative overflow-hidden">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brand-900/40 via-slate-900 to-slate-900 -z-10" />
           <ShieldCheck className="w-16 h-16 text-emerald-400 mx-auto mb-8" />
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">Designed for absolute control.</h2>
@@ -226,7 +226,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               window.scrollTo({ top: 0, behavior: 'smooth' });
               setTimeout(() => document.querySelector('input')?.focus(), 500);
             }}
-            className="px-8 py-4 bg-white text-slate-900 hover:bg-slate-100 rounded-xl font-bold transition-colors shadow-xl"
+            className="px-8 py-4 bg-surface text-white hover:bg-surface-secondary rounded-xl font-bold transition-colors shadow-xl"
           >
             Start your session
           </button>

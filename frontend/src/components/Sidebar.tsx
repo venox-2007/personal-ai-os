@@ -81,8 +81,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
           <Cpu className="w-5 h-5" />
         </div>
         <div>
-          <h1 className="text-sm font-semibold tracking-wide text-slate-800">Personal AI OS</h1>
-          <span className="text-[10px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+          <h1 className="text-sm font-semibold tracking-wide text-slate-200">Personal AI OS</h1>
+          <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
             Local & Private
           </span>
         </div>
@@ -106,16 +106,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
                   onClick={() => onSelectTab(item.id)}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
-                      ? "bg-brand-50 text-brand-600"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                      ? "bg-brand-500/10 text-brand-400"
+                      : "text-slate-400 hover:bg-surface-secondary hover:text-white"
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 ${isActive ? "text-brand-600" : "text-slate-400"}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? "text-brand-400" : "text-slate-400"}`} />
                     <span>{item.label}</span>
                   </div>
                   {item.tag && (
-                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-md font-medium">
+                    <span className="text-[10px] bg-surface-secondary text-slate-400 px-1.5 py-0.5 rounded-md font-medium">
                       {item.tag}
                     </span>
                   )}

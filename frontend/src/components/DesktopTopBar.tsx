@@ -38,7 +38,7 @@ export const DesktopTopBar: React.FC<TopBarProps> = ({ health, onToggleActivity 
         {onToggleActivity && (
           <button 
             onClick={onToggleActivity}
-            className="flex items-center gap-1.5 px-2 h-full hover:bg-white/10 transition-colors"
+            className="flex items-center gap-1.5 px-2 h-full hover:bg-surface/10 transition-colors"
           >
             <Activity className="w-3.5 h-3.5" />
             <span>Activity</span>
@@ -55,7 +55,7 @@ export const DesktopTopBar: React.FC<TopBarProps> = ({ health, onToggleActivity 
           <Battery className="w-4 h-4" />
         </div>
         
-        <div className="flex items-center gap-3 px-2 h-full hover:bg-white/10 transition-colors cursor-default">
+        <div className="flex items-center gap-3 px-2 h-full hover:bg-surface/10 transition-colors cursor-default">
           <span>{formatDate(time)}</span>
           <span className="font-semibold">{formatTime(time)}</span>
         </div>

@@ -32,7 +32,7 @@ export const DesktopDock: React.FC<DesktopDockProps> = ({ activeTab, onSelectTab
 
   return (
     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50">
-      <div className="flex items-center gap-2 p-2 bg-slate-900/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+      <div className="flex items-center gap-2 p-2 bg-surface/60 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
         {dockItems.map((item) => {
           const isActive = activeTab === item.id;
           return (
@@ -41,8 +41,8 @@ export const DesktopDock: React.FC<DesktopDockProps> = ({ activeTab, onSelectTab
                 onClick={() => onSelectTab(item.id)}
                 className={`w-12 h-12 flex items-center justify-center rounded-xl transition-all duration-300 ${
                   isActive 
-                    ? "bg-white/15 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]" 
-                    : "hover:bg-white/10 hover:-translate-y-1"
+                    ? "bg-surface/15 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]" 
+                    : "hover:bg-surface/10 hover:-translate-y-1"
                 }`}
               >
                 <div className={`${isActive ? item.color : "text-slate-400 group-hover:text-slate-200"} transition-colors`}>
@@ -51,12 +51,12 @@ export const DesktopDock: React.FC<DesktopDockProps> = ({ activeTab, onSelectTab
                 
                 {/* Active indicator dot */}
                 {isActive && (
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full opacity-80" />
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-surface rounded-full opacity-80" />
                 )}
               </button>
               
               {/* Tooltip */}
-              <div className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-slate-800 border border-white/10 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg">
+              <div className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1 bg-surface-secondary border border-white/10 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg">
                 {item.label}
               </div>
             </div>

@@ -36,7 +36,7 @@ export const WorkflowProgress: React.FC = () => {
               initial={{ opacity: 0, y: -20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-              className="bg-slate-900/90 backdrop-blur border border-slate-700/50 rounded-xl p-4 shadow-xl text-sm min-w-[280px]"
+              className="bg-surface/90 backdrop-blur border border-slate-700/50 rounded-xl p-4 shadow-xl text-sm min-w-[280px]"
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-slate-200 font-medium">{wf.goal || wf.name}</span>
@@ -59,7 +59,7 @@ export const WorkflowProgress: React.FC = () => {
                   <span>{stepText}</span>
                 )}
               </div>
-              <div className="w-full bg-slate-800 rounded-full h-1 mt-3 overflow-hidden">
+              <div className="w-full bg-surface-secondary rounded-full h-1 mt-3 overflow-hidden">
                 <motion.div
                   className={`h-1 rounded-full ${wf.status === 'WAITING_APPROVAL' ? 'bg-amber-500' : 'bg-blue-500'}`}
                   initial={{ width: 0 }}

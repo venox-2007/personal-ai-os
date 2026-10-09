@@ -57,7 +57,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
   // Determine permission color styling
   const isDestructive = approval.permission_level === 3;
   const borderTone = isDestructive
-    ? "border-red-200 bg-red-50"
+    ? "border-red-200 bg-red-900/20"
     : "border-amber-200 bg-amber-50";
 
   return (
@@ -66,14 +66,14 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
       <div className="flex items-center justify-between border-b border-black/5 pb-3">
         <div className="flex items-center gap-2">
           <ShieldAlert className={`w-4 h-4 ${isDestructive ? "text-red-500" : "text-amber-500"}`} />
-          <span className="text-sm font-semibold text-slate-800">
+          <span className="text-sm font-semibold text-slate-200">
             This action needs your approval
           </span>
         </div>
       </div>
 
       {/* Target Action Summary */}
-      <div className="space-y-1 text-slate-700">
+      <div className="space-y-1 text-slate-300">
         <div className="text-sm font-medium">
           {approval.action_description || approval.tool_description || `Tool: ${approval.tool_name}`}
         </div>
@@ -81,27 +81,27 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
 
       {/* Relevant Arguments Preview */}
       {approval.arguments && Object.keys(approval.arguments).length > 0 && (
-        <div className="bg-white/60 rounded-lg p-3 border border-black/5 text-sm space-y-2">
+        <div className="bg-surface/60 rounded-lg p-3 border border-black/5 text-sm space-y-2">
           {!showArgs ? (
             <div className="space-y-1.5">
               {Object.entries(approval.arguments).map(([k, v]) => (
                 <div key={k} className="flex gap-2">
-                  <span className="text-slate-500">{k}:</span>
-                  <span className="text-slate-800 font-medium truncate">
+                  <span className="text-slate-400">{k}:</span>
+                  <span className="text-slate-200 font-medium truncate">
                     {typeof v === "object" ? JSON.stringify(v) : String(v)}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <pre className="text-[11px] font-mono text-slate-700 bg-white p-2 rounded border border-black/5 overflow-x-auto max-h-36">
+            <pre className="text-[11px] font-mono text-slate-300 bg-surface p-2 rounded border border-black/5 overflow-x-auto max-h-36">
               {JSON.stringify(approval.arguments, null, 2)}
             </pre>
           )}
           <button
             type="button"
             onClick={() => setShowArgs(!showArgs)}
-            className="text-brand-600 hover:text-brand-700 text-xs font-medium flex items-center gap-1 pt-1"
+            className="text-brand-400 hover:text-brand-700 text-xs font-medium flex items-center gap-1 pt-1"
           >
             <Code className="w-3 h-3" />
             <span>{showArgs ? "Show less" : "Show raw JSON"}</span>
@@ -111,7 +111,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
 
       {/* Error Notice */}
       {error && (
-        <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-100 text-red-600 text-sm rounded-lg">
+        <div className="flex items-center gap-2 p-2.5 bg-red-900/20 border border-red-900/30 text-red-400 text-sm rounded-lg">
           <AlertTriangle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -124,7 +124,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
             type="button"
             onClick={handleReject}
             disabled={isSubmitting}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 disabled:opacity-50 text-slate-700 text-sm font-medium border border-slate-200 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-surface hover:bg-surface-secondary disabled:opacity-50 text-slate-300 text-sm font-medium border border-surface-border transition-colors"
           >
             Cancel
           </button>
@@ -141,14 +141,14 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({
           </button>
         </div>
       ) : (
-        <div className="p-3 rounded-xl bg-white border border-slate-200 text-center text-sm font-medium">
+        <div className="p-3 rounded-xl bg-surface border border-surface-border text-center text-sm font-medium">
           {isApproved && (
             <span className="text-emerald-600 flex items-center justify-center gap-2">
               <Check className="w-4 h-4" /> Approved
             </span>
           )}
           {isRejected && (
-            <span className="text-slate-500 flex items-center justify-center gap-2">
+            <span className="text-slate-400 flex items-center justify-center gap-2">
               <X className="w-4 h-4" /> Cancelled
             </span>
           )}

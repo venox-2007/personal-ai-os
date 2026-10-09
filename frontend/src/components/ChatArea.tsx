@@ -56,8 +56,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 ${
                   isUser
-                    ? "bg-slate-200 text-slate-600"
-                    : "bg-brand-50 text-brand-600"
+                    ? "bg-surface-secondary text-slate-400"
+                    : "bg-brand-500/10 text-brand-400"
                 }`}
               >
                 {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
@@ -67,8 +67,8 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                 <div
                   className={`text-sm leading-relaxed ${
                     isUser
-                      ? "bg-slate-100 text-slate-800 px-5 py-3 rounded-2xl rounded-tr-sm"
-                      : "text-slate-800 py-2 whitespace-pre-line"
+                      ? "bg-surface-secondary text-slate-200 px-5 py-3 rounded-2xl rounded-tr-sm"
+                      : "text-slate-200 py-2 whitespace-pre-line"
                   }`}
                 >
                   {msg.content}
@@ -86,14 +86,14 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
                   {!isUser && msg.activities && msg.activities.length > 0 && (
                     <button
                       onClick={() => onSelectMessageActivities?.(msg)}
-                      className="hover:text-brand-600 flex items-center gap-1 transition-colors"
+                      className="hover:text-brand-400 flex items-center gap-1 transition-colors"
                     >
                       <Terminal className="w-3.5 h-3.5" />
                       <span>{msg.activities.length} steps</span>
                     </button>
                   )}
                   {!isUser && msg.tool_calls && msg.tool_calls.length > 0 && (
-                    <div className="flex items-center gap-1 text-slate-500">
+                    <div className="flex items-center gap-1 text-slate-400">
                       <Wrench className="w-3.5 h-3.5" />
                       <span>Used tools</span>
                     </div>
@@ -113,12 +113,12 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
 
         {isLoading && (
           <div className="flex gap-4 max-w-4xl mx-auto">
-            <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center shrink-0 mt-1">
+            <div className="w-8 h-8 rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center shrink-0 mt-1">
               <Bot className="w-4 h-4 animate-pulse" />
             </div>
             <div className="py-3 space-y-2 w-48">
-              <div className="h-2 bg-slate-200 rounded animate-pulse w-full"></div>
-              <div className="h-2 bg-slate-200 rounded animate-pulse w-2/3"></div>
+              <div className="h-2 bg-surface-secondary rounded animate-pulse w-full"></div>
+              <div className="h-2 bg-surface-secondary rounded animate-pulse w-2/3"></div>
             </div>
           </div>
         )}
@@ -136,7 +136,7 @@ export const ChatArea: React.FC<ChatAreaProps> = ({
             disabled={isLoading}
             placeholder="Reply to AI..."
             rows={1}
-            className="w-full bg-transparent text-slate-800 text-sm pl-5 pr-14 py-4 border-none focus:outline-none resize-none placeholder:text-slate-400"
+            className="w-full bg-transparent text-slate-200 text-sm pl-5 pr-14 py-4 border-none focus:outline-none resize-none placeholder:text-slate-400"
           />
           <button
             type="submit"

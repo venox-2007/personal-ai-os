@@ -27,12 +27,12 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onToggleActivity }) 
 
   return (
     <header className="h-14 border-b border-surface-border bg-surface flex items-center justify-between px-6 shrink-0">
-      <h2 className="text-sm font-semibold text-slate-800 capitalize tracking-wide">{getTabName()}</h2>
+      <h2 className="text-sm font-semibold text-slate-200 capitalize tracking-wide">{getTabName()}</h2>
       <div className="flex items-center gap-3">
         {onToggleActivity && (
           <button 
             onClick={onToggleActivity}
-            className="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-md transition-colors flex items-center gap-2"
+            className="p-1.5 text-slate-400 hover:text-brand-400 hover:bg-brand-500/10 rounded-md transition-colors flex items-center gap-2"
           >
             <Activity className="w-4 h-4" />
             <span className="text-xs font-medium">Activity</span>
