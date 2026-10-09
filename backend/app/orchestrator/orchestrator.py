@@ -184,6 +184,22 @@ class Orchestrator:
         if not messages or messages[-1].content != message or messages[-1].role != "user":
             messages.append(LLMMessage(role="user", content=message))
 
+        # Step 2.5: Fast-path for trivial greetings
+        msg_lower = message.strip().lower()
+        if msg_lower in ("hi", "hello", "hey", "hi!", "hello!", "hey!", "greetings", "hello again", "hi there"):
+            final_text = "Hello! I'm your Personal AI OS Assistant. How can I help you today?"
+            activities.append(
+                AgentActivityEvent(
+                    agent="Orchestrator",
+                    activity_type=ActivityType.COMPLETED,
+                    status=ActivityStatus.SUCCESS,
+                    action="Handled trivial greeting",
+                    description="Responded directly without invoking model or tools to save latency.",
+                )
+            )
+            await self.memory.conversation.add_message(conv_id, "assistant", final_text)
+            return conv_id, final_text, activities, executed_tool_calls, "completed", None
+
         # Step 3: Collect available tool schemas from ToolRegistry
         all_tools = self.tools.list_tools()
         tool_definitions = [t.to_llm_tool_definition() for t in all_tools]

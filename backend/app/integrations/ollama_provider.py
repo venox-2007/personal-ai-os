@@ -103,13 +103,15 @@ class OllamaProvider(BaseLLMProvider):
 
     async def check_model_status(self, model: Optional[str] = None) -> ModelAvailabilityStatus:
         """Determines whether Ollama is reachable and whether the target model is present."""
-        if not await self.is_available():
-            return ModelAvailabilityStatus.PROVIDER_UNAVAILABLE
+        installed_models = await self.list_models()
+        if not installed_models:
+            # If list_models returned empty, check if daemon is even up
+            if not await self.is_available():
+                return ModelAvailabilityStatus.PROVIDER_UNAVAILABLE
+            return ModelAvailabilityStatus.MODEL_NOT_FOUND
 
         target_model = model or self.default_model
-        installed_models = await self.list_models()
-
-        # Check exact match or base tag match (e.g. "qwen3:4b" or "qwen3:latest")
+        
         target_base = target_model.split(":")[0]
         for m in installed_models:
             m_base = m.split(":")[0]
