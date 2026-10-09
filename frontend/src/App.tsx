@@ -7,6 +7,7 @@ import { StudyView } from "./pages/StudyView";
 import { CodingView } from "./pages/CodingView";
 import { ResearchView } from "./pages/ResearchView";
 import { CalendarView } from "./pages/CalendarView";
+import { MemoryView } from "./pages/MemoryView";
 import { NavItem } from "./components/Sidebar";
 import { ChatMessage, AgentActivityEvent, HealthCheckData } from "./types";
 import { checkHealth, sendChatMessage, approveAction, rejectAction } from "./api/client";
@@ -192,6 +193,8 @@ export function App() {
         <CodingView />
       ) : activeTab === "research" ? (
         <ResearchView />
+      ) : activeTab === "memory" ? (
+        <MemoryView />
       ) : (
         <PlaceholderView tab={activeTab} />
       )}

@@ -362,3 +362,69 @@ export const fetchActiveWorkflows = async (): Promise<any[]> => {
   return data.filter((wf: any) => ["PENDING", "RUNNING", "WAITING_APPROVAL"].includes(wf.status));
 };
 
+
+// Memory API
+export const fetchMemories = async (type?: string, q?: string, includeArchived?: boolean): Promise<{items: any[], total: number}> => {
+  let url = "/api/memory";
+  if (q) {
+    url = `/api/memory/search?q=${encodeURIComponent(q)}`;
+    if (includeArchived) url += "&include_archived=true";
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to search memories");
+    const items = await res.json();
+    return { items, total: items.length };
+  } else {
+    const params = new URLSearchParams();
+    if (type && type !== "ALL") params.append("memory_type", type);
+    if (includeArchived) params.append("include_archived", "true");
+    if (params.toString()) url += `?${params.toString()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Failed to fetch memories");
+    return res.json();
+  }
+};
+
+export const createMemory = async (data: any) => {
+  const res = await fetch("/api/memory", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || "Failed to create memory");
+  }
+  return res.json();
+};
+
+export const updateMemory = async (id: string, data: any) => {
+  const res = await fetch(`/api/memory/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.detail || "Failed to update memory");
+  }
+  return res.json();
+};
+
+export const deleteMemory = async (id: string) => {
+  const res = await fetch(`/api/memory/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete memory");
+  return res.json();
+};
+
+export const archiveMemory = async (id: string) => {
+  const res = await fetch(`/api/memory/${id}/archive`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to archive memory");
+  return res.json();
+};
+
+export const restoreMemory = async (id: string) => {
+  const res = await fetch(`/api/memory/${id}/restore`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to restore memory");
+  return res.json();
+};
+

@@ -3,7 +3,7 @@
 from app.models.entities import (
     ConversationModel,
     MessageModel,
-    MemoryRecordModel,
+    MemoryModel,
     AgentRunModel,
     ToolExecutionModel,
     ApprovalRequestModel,
@@ -16,7 +16,7 @@ from app.models.entities import (
 __all__ = [
     "ConversationModel",
     "MessageModel",
-    "MemoryRecordModel",
+    "MemoryModel",
     "AgentRunModel",
     "ToolExecutionModel",
     "ApprovalRequestModel",

@@ -9,6 +9,7 @@ from sqlalchemy import (
     DateTime,
     Integer,
     Boolean,
+    Float,
     ForeignKey,
 )
 from sqlalchemy.orm import relationship
@@ -52,19 +53,24 @@ class MessageModel(Base):
     conversation = relationship("ConversationModel", back_populates="messages")
 
 
-class MemoryRecordModel(Base):
-    """Persistent storage for long-term facts, preferences, and semantic records."""
+class MemoryModel(Base):
+    """Persistent storage for explicit, durable memories."""
 
-    __tablename__ = "memories"
+    __tablename__ = "memories_v2"
 
     id = Column(String(36), primary_key=True, default=generate_uuid)
-    memory_type = Column(String(32), nullable=False)  # fact, preference, semantic, episode
-    key = Column(String(255), nullable=False, index=True)
     content = Column(Text, nullable=False)
-    tags = Column(String(255), nullable=True)
-    metadata_json = Column(Text, nullable=True)
+    memory_type = Column(String(32), nullable=False)
+    category = Column(String(64), nullable=True)
+    source = Column(String(64), nullable=False, default="USER_EXPLICIT")
+    importance = Column(Float, nullable=False, default=0.5)
+    confidence = Column(Float, nullable=False, default=1.0)
     created_at = Column(DateTime, default=utc_now, nullable=False)
     updated_at = Column(DateTime, default=utc_now, onupdate=utc_now, nullable=False)
+    last_accessed_at = Column(DateTime, nullable=True)
+    access_count = Column(Integer, nullable=False, default=0)
+    is_archived = Column(Boolean, nullable=False, default=False)
+    metadata_json = Column(Text, nullable=True)
 
 
 class AgentRunModel(Base):
