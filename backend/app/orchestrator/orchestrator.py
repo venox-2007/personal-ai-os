@@ -27,6 +27,7 @@ from app.services.approval_service import (
     approval_service,
 )
 from app.tools import ToolRegistry, tool_registry
+from app.core.observability import log_execution_event
 
 
 SYSTEM_ORCHESTRATOR_PROMPT = """You are the central Orchestrator of Personal AI OS, a local-first, privacy-respecting personal AI platform.
@@ -121,9 +122,9 @@ class Orchestrator:
                 )
             )
             response_text = (
-                f"⚠️ **Local LLM Engine Offline**\n\n"
+                f" **Local LLM Engine Offline**\n\n"
                 f"The local inference service ({self.llm.provider_name}) is currently unreachable at `{settings.OLLAMA_BASE_URL}`.\n\n"
-                f"To enable local autonomous execution at ₹0 cost, please start Ollama in your terminal:\n"
+                f"To enable local autonomous execution at 0 cost, please start Ollama in your terminal:\n"
                 f"```bash\nollama run {settings.OLLAMA_MODEL}\n```\n"
                 f"The Personal AI OS architecture remains healthy and ready to process requests once the engine starts."
             )
@@ -141,7 +142,7 @@ class Orchestrator:
                 )
             )
             response_text = (
-                f"⚠️ **Model Not Found in Ollama**\n\n"
+                f" **Model Not Found in Ollama**\n\n"
                 f"Ollama is online, but model `{settings.OLLAMA_MODEL}` is not installed.\n\n"
                 f"Please download the model locally by running:\n"
                 f"```bash\nollama pull {settings.OLLAMA_MODEL}\n```"
@@ -212,16 +213,25 @@ class Orchestrator:
                 )
             except Exception as e:
                 logger.error(f"Error during LLM chat turn: {e}", exc_info=True)
+                
+                # Determine safe error category
+                err_category = "InferenceError"
+                if "timeout" in str(e).lower():
+                    err_category = "Timeout"
+                elif "connect" in str(e).lower():
+                    err_category = "ConnectionError"
+
                 activities.append(
                     AgentActivityEvent(
                         agent="Orchestrator",
                         activity_type=ActivityType.ERROR,
                         status=ActivityStatus.FAILED,
                         action="Inference error occurred",
-                        description=f"LLM generation failed: {str(e)}",
+                        description=f"Local AI Engine encountered an error ({err_category}).",
                     )
                 )
-                err_text = f"An error occurred while communicating with the LLM engine: {str(e)}"
+                
+                err_text = f"An error occurred while communicating with the local LLM engine. Please ensure the model is running and try again."
                 await self.memory.conversation.add_message(conv_id, "assistant", err_text)
                 return conv_id, err_text, activities, executed_tool_calls, "error", None
 
@@ -371,7 +381,7 @@ class Orchestrator:
                         )
                     )
                     waiting_text = (
-                        f"🛡️ **Action Requires Confirmation**\n\n"
+                        f" **Action Requires Confirmation**\n\n"
                         f"The requested action `{tool.name}` is classified as **{tool.permission_level.label}** "
                         f"(Level {tool.permission_level.value}).\n\n"
                         f"Please approve or reject this action using the authorization card below."

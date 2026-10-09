@@ -11,6 +11,7 @@ from app.services.approval_service import approval_service
 from app.permissions.models import PermissionLevel
 from app.integrations.llm_provider import LLMMessage
 from app.orchestrator.orchestrator import orchestrator  # to use its llm for synthesis
+from app.core.observability import log_execution_event
 
 class WorkflowOrchestratorError(Exception):
     pass
@@ -119,6 +120,19 @@ class WorkflowOrchestrator:
                         return
                     continue
                     
+                # Validate inputs
+                is_valid, val_err = tool.validate_arguments(resolved_inputs)
+                if not is_valid:
+                    step.status = "FAILED"
+                    step.error = f"Invalid inputs for {tool.name}: {val_err}"
+                    db.commit()
+                    if step.on_failure == "FAIL":
+                        wf.status = "FAILED"
+                        wf.error = step.error
+                        db.commit()
+                        return
+                    continue
+                    
                 # Hit HITL trap if required
                 if tool.permission_level >= PermissionLevel.LEVEL_2_EXTERNAL_SIDE_EFFECT:
                     if not step.approval_id:
@@ -154,6 +168,19 @@ class WorkflowOrchestrator:
                     
                 step.completed_at = datetime.utcnow()
                 db.commit()
+                
+                duration_ms = (step.completed_at - step.started_at).total_seconds() * 1000
+                log_execution_event(
+                    event_type="workflow_step",
+                    status="SUCCESS" if step.status == "COMPLETED" else "FAILED",
+                    correlation_id=wf.id,
+                    agent_name=step.agent_name,
+                    tool_name=step.tool_name,
+                    workflow_id=wf.id,
+                    step_id=step.step_id,
+                    duration_ms=duration_ms,
+                    error_category="ToolExecutionError" if step.status == "FAILED" else None
+                )
                 
                 if step.status == "FAILED" and step.on_failure == "FAIL":
                     wf.status = "FAILED"
