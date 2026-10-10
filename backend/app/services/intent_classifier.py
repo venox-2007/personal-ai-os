@@ -51,7 +51,7 @@ def get_readonly_fast_path(text: str) -> str | None:
     text_lower = text.strip().lower()
     
     # Must NOT contain mutation keywords
-    mutation_keywords = ["create", "add", "make", "schedule", "book", "update", "change", "edit", "move", "delete", "remove", "cancel", "invite"]
+    mutation_keywords = ["create", "add", "make", "book", "update", "change", "edit", "move", "delete", "remove", "cancel", "invite"]
     for kw in mutation_keywords:
         if re.search(r'\b' + re.escape(kw) + r'\b', text_lower):
             return None

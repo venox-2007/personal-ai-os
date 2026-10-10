@@ -19,9 +19,9 @@ def get_recommendations(db: Session = Depends(get_db)):
     )
 
 @router.post("/refresh", response_model=dict)
-def refresh_recommendations():
+def refresh_recommendations_endpoint():
     """Trigger a recommendation refresh manually."""
-    proactive_service.refresh_recommendations()
+    proactive_service.refresh_recommendations(force=True)
     return {"status": "success", "message": "Recommendations refreshed."}
 
 @router.patch("/{rec_id}/dismiss", response_model=dict)

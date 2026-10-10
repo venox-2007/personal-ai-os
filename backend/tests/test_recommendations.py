@@ -20,7 +20,8 @@ def db_session():
         db.commit()
 
 def test_empty_sources(db_session):
-    proactive_service.refresh_recommendations()
+    proactive_service.refresh_recommendations(force=True)
+    db_session.expire_all()
     recs = proactive_service.get_active_recommendations(db_session)
     assert len(recs) == 0
 
@@ -44,7 +45,8 @@ def test_calendar_recommendations(db_session):
     db_session.add(ev2)
     db_session.commit()
 
-    proactive_service.refresh_recommendations()
+    proactive_service.refresh_recommendations(force=True)
+    db_session.expire_all()
     recs = proactive_service.get_active_recommendations(db_session)
     
     assert len(recs) == 2
@@ -65,12 +67,14 @@ def test_deduplication(db_session):
     db_session.commit()
 
     # First refresh
-    proactive_service.refresh_recommendations()
+    proactive_service.refresh_recommendations(force=True)
+    db_session.expire_all()
     recs1 = proactive_service.get_active_recommendations(db_session)
     assert len(recs1) == 1
 
     # Second refresh
-    proactive_service.refresh_recommendations()
+    proactive_service.refresh_recommendations(force=True)
+    db_session.expire_all()
     recs2 = proactive_service.get_active_recommendations(db_session)
     assert len(recs2) == 1
     assert recs1[0].id == recs2[0].id
@@ -81,13 +85,15 @@ def test_dismissal_and_completion(db_session):
     db_session.add(wf)
     db_session.commit()
 
-    proactive_service.refresh_recommendations()
+    proactive_service.refresh_recommendations(force=True)
+    db_session.expire_all()
     recs = proactive_service.get_active_recommendations(db_session)
     assert len(recs) == 1
     rec_id = recs[0].id
 
     # Dismiss
     assert proactive_service.update_status(db_session, rec_id, "dismissed") == True
+    db_session.expire_all()
     recs = proactive_service.get_active_recommendations(db_session)
     assert len(recs) == 0
 
@@ -108,10 +114,12 @@ def test_stale_expiration(db_session):
     db_session.add(rec)
     db_session.commit()
 
+    db_session.expire_all()
     recs = proactive_service.get_active_recommendations(db_session)
     assert len(recs) == 1
 
-    proactive_service.refresh_recommendations()
+    proactive_service.refresh_recommendations(force=True)
     
+    db_session.expire_all()
     recs = proactive_service.get_active_recommendations(db_session)
     assert len(recs) == 0

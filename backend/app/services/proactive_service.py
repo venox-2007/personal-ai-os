@@ -18,13 +18,27 @@ def compute_dedup_key(category: str, entity_id: str, rule: str) -> str:
     return hashlib.md5(raw.encode("utf-8")).hexdigest()
 
 class ProactiveService:
-    def refresh_recommendations(self):
+    def __init__(self):
+        self._last_refresh_time: Optional[datetime] = None
+        self._refresh_cooldown = timedelta(minutes=5)
+
+    def refresh_recommendations(self, force: bool = False):
         """Generates proactive recommendations based on existing local data."""
+        now = datetime.now(timezone.utc)
+        if not force and self._last_refresh_time and (now - self._last_refresh_time) < self._refresh_cooldown:
+            return
+
         with SessionLocal() as db:
-            self._expire_stale_recommendations(db)
-            self._generate_calendar_recommendations(db)
-            self._generate_workflow_recommendations(db)
-            db.commit()
+            try:
+                self._expire_stale_recommendations(db)
+                self._generate_calendar_recommendations(db)
+                self._generate_workflow_recommendations(db)
+                db.commit()
+                self._last_refresh_time = now
+            except Exception as e:
+                db.rollback()
+                import logging
+                logging.getLogger(__name__).error(f"Failed to refresh recommendations: {e}")
 
     def _expire_stale_recommendations(self, db: Session):
         """Expire recommendations whose due date has passed by a margin, or events that happened."""
@@ -38,17 +52,17 @@ class ProactiveService:
         """Recommend preparation for upcoming meetings."""
         now = datetime.now(timezone.utc).replace(tzinfo=None) # Align with DB timezone logic
         upcoming_window = now + timedelta(days=2)
-        
+
         events = db.query(CalendarEventModel).filter(
             CalendarEventModel.start_datetime >= now,
             CalendarEventModel.start_datetime <= upcoming_window,
             CalendarEventModel.status != "CANCELLED"
         ).all()
-        
+
         for ev in events:
             # E.g., remind user to prepare for meeting
             dedup_key = compute_dedup_key("calendar", ev.id, "upcoming_prep")
-            
+
             # Check if exists
             existing = db.query(RecommendationModel).filter(RecommendationModel.deduplication_key == dedup_key).first()
             if not existing:
@@ -57,17 +71,20 @@ class ProactiveService:
                     priority = 2
                 else:
                     priority = 1
-                    
+
+                raw_title = f"Prepare for: {ev.title}"
+                safe_title = raw_title[:250] + "..." if len(raw_title) > 255 else raw_title
+
                 rec = RecommendationModel(
                     category="calendar",
-                    title=f"Prepare for: {ev.title}",
+                    title=safe_title,
                     description=f"You have an event coming up. Consider preparing notes or reviewing materials.",
-                    reason=f"Event '{ev.title}' starts on {ev.start_datetime.strftime('%Y-%m-%d %H:%M')}.",
+                    reason=f"Event '{ev.title[:100]}...' starts on {ev.start_datetime.strftime('%Y-%m-%d %H:%M')}.",
                     priority=priority,
                     status="active",
                     deduplication_key=dedup_key,
                     suggested_agent="Research",
-                    suggested_workflow_goal=f"Research background context for my upcoming event: {ev.title}",
+                    suggested_workflow_goal=f"Research background context for my upcoming event: {ev.title[:100]}",
                     due_at=ev.start_datetime
                 )
                 db.add(rec)
@@ -77,15 +94,18 @@ class ProactiveService:
         workflows = db.query(WorkflowModel).filter(
             WorkflowModel.status.in_(["PENDING", "WAITING_APPROVAL"])
         ).all()
-        
+
         for wf in workflows:
             dedup_key = compute_dedup_key("workflow", wf.id, "pending_attention")
             existing = db.query(RecommendationModel).filter(RecommendationModel.deduplication_key == dedup_key).first()
-            
+
             if not existing:
+                raw_title = f"Action required: Workflow '{wf.name}'"
+                safe_title = raw_title[:250] + "..." if len(raw_title) > 255 else raw_title
+
                 rec = RecommendationModel(
                     category="workflow",
-                    title=f"Action required: Workflow '{wf.name}'",
+                    title=safe_title,
                     description=f"A workflow is currently stuck in {wf.status} state.",
                     reason=f"Workflow was created at {wf.created_at.strftime('%Y-%m-%d')} and needs attention.",
                     priority=3 if wf.status == "WAITING_APPROVAL" else 2,
