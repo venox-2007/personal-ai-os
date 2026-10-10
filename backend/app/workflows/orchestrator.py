@@ -208,6 +208,9 @@ class WorkflowOrchestrator:
                 return
             wf = db.query(WorkflowModel).filter(WorkflowModel.id == workflow_id).first()
             
+            if wf and wf.status in ["CANCELLED", "FAILED"]:
+                return
+            
             if not approved:
                 step.status = "FAILED"
                 step.error = f"Approval rejected: {reason}"
