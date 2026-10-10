@@ -220,7 +220,12 @@ class Orchestrator:
             from app.services.memory_context_builder import memory_context_builder
             
             with SessionLocal() as db:
-                relevant_memories = memory_service.retrieve_relevant_memories(db, message, limit=5)
+                try:
+                    relevant_memories = memory_service.retrieve_relevant_memories(db, message, limit=5)
+                except Exception as e:
+                    import logging
+                    logging.warning(f"Memory retrieval failed, falling back: {e}")
+                    relevant_memories = []
                 memory_context = memory_context_builder.build_context(relevant_memories)
                 
             system_content = SYSTEM_ORCHESTRATOR_PROMPT
