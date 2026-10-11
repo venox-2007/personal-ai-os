@@ -1,22 +1,24 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  ReactNode,
+} from "react";
 import { NavItem } from "../components/Sidebar";
+import {
+  WindowBounds,
+  WindowState,
+  DESKTOP_STATE_STORAGE_KEY,
+  clampWindowBounds,
+  getDefaultWindowBounds,
+  validateAndSanitizePersistedState,
+  serializeDesktopState,
+} from "./windowUtils";
 
-export interface WindowBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-export interface WindowState {
-  id: string; // Used as the NavItem appId
-  appId: NavItem;
-  title: string;
-  isMinimized: boolean;
-  isMaximized: boolean;
-  bounds: WindowBounds;
-  zIndex: number;
-}
+export type { WindowBounds, WindowState };
 
 interface WindowContextType {
   windows: WindowState[];
@@ -32,125 +34,278 @@ interface WindowContextType {
 
 const WindowContext = createContext<WindowContextType | null>(null);
 
-const DEFAULT_WIDTH = 1000;
-const DEFAULT_HEIGHT = 700;
+function getViewportDimensions(): { width: number; height: number } {
+  if (typeof window === "undefined") return { width: 1920, height: 1080 };
+  const width = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+  const height = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+  return {
+    width: Math.max(320, width),
+    height: Math.max(320, height),
+  };
+}
 
 export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [windows, setWindows] = useState<WindowState[]>([]);
-  const [activeWindowId, setActiveWindowId] = useState<string | null>(null);
-  const [highestZIndex, setHighestZIndex] = useState(10);
+  // Initialize state once from localStorage (if valid) or fallback safely
+  const [windows, setWindows] = useState<WindowState[]>(() => {
+    try {
+      const stored = localStorage.getItem(DESKTOP_STATE_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const { width, height } = getViewportDimensions();
+        const sanitized = validateAndSanitizePersistedState(parsed, width, height);
+        if (sanitized && sanitized.windows.length > 0) {
+          return sanitized.windows;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to read persisted desktop state:", e);
+    }
+    return [];
+  });
 
+  const [activeWindowId, setActiveWindowId] = useState<string | null>(() => {
+    try {
+      const stored = localStorage.getItem(DESKTOP_STATE_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const { width, height } = getViewportDimensions();
+        const sanitized = validateAndSanitizePersistedState(parsed, width, height);
+        if (sanitized) {
+          return sanitized.activeWindowId;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
+
+  const [, setHighestZIndex] = useState<number>(() => {
+    try {
+      const stored = localStorage.getItem(DESKTOP_STATE_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const { width, height } = getViewportDimensions();
+        const sanitized = validateAndSanitizePersistedState(parsed, width, height);
+        if (sanitized) {
+          return sanitized.highestZIndex;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return 10;
+  });
+
+  // Track viewport changes to keep windows constrained
+  const isInitialMount = useRef(true);
+
+  // Focus window brings to foreground, clears minimized status, and updates active window ID
   const focusWindow = useCallback((id: string) => {
-    setHighestZIndex((prev) => prev + 1);
+    setHighestZIndex((prevZ) => {
+      const nextZ = prevZ + 1;
+      setWindows((prevWindows) =>
+        prevWindows.map((w) => {
+          if (w.id === id) {
+            return { ...w, zIndex: nextZ, isMinimized: false };
+          }
+          return w;
+        })
+      );
+      return nextZ;
+    });
+    setActiveWindowId(id);
+  }, []);
+
+  // Open window: if already open, restore and focus it immediately
+  const openWindow = useCallback(
+    (appId: NavItem, title: string) => {
+      setWindows((prev) => {
+        const existing = prev.find((w) => w.id === appId);
+        if (existing) {
+          // If already open, bring to top and un-minimize synchronously
+          setHighestZIndex((prevZ) => {
+            const nextZ = prevZ + 1;
+            setTimeout(() => {
+              setWindows((curr) =>
+                curr.map((w) => (w.id === existing.id ? { ...w, zIndex: nextZ, isMinimized: false } : w))
+              );
+              setActiveWindowId(existing.id);
+            }, 0);
+            return nextZ;
+          });
+          return prev;
+        }
+
+        const { width: vw, height: vh } = getViewportDimensions();
+        const newBounds = getDefaultWindowBounds(vw, vh, prev.length);
+
+        setHighestZIndex((prevZ) => {
+          const nextZ = prevZ + 1;
+          const newWin: WindowState = {
+            id: appId,
+            appId,
+            title,
+            isMinimized: false,
+            isMaximized: false,
+            bounds: newBounds,
+            zIndex: nextZ,
+          };
+          setActiveWindowId(appId);
+          setTimeout(() => {
+            setWindows((curr) => (curr.some((w) => w.id === appId) ? curr : [...curr, newWin]));
+          }, 0);
+          return nextZ;
+        });
+
+        return prev;
+      });
+    },
+    []
+  );
+
+  // Close window: removes window and activates highest non-minimized window
+  const closeWindow = useCallback(
+    (id: string) => {
+      setWindows((prev) => {
+        const remaining = prev.filter((w) => w.id !== id);
+        if (activeWindowId === id) {
+          const unminimized = remaining.filter((w) => !w.isMinimized);
+          if (unminimized.length > 0) {
+            const topWindow = unminimized.reduce((p, c) => (p.zIndex > c.zIndex ? p : c));
+            setActiveWindowId(topWindow.id);
+          } else {
+            setActiveWindowId(null);
+          }
+        }
+        return remaining;
+      });
+    },
+    [activeWindowId]
+  );
+
+  // Minimize window: marks minimized, moves focus to next highest window
+  const minimizeWindow = useCallback(
+    (id: string) => {
+      setWindows((prev) => {
+        const updated = prev.map((w) => (w.id === id ? { ...w, isMinimized: true } : w));
+        if (activeWindowId === id) {
+          const unminimized = updated.filter((w) => !w.isMinimized && w.id !== id);
+          if (unminimized.length > 0) {
+            const topWindow = unminimized.reduce((p, c) => (p.zIndex > c.zIndex ? p : c));
+            setActiveWindowId(topWindow.id);
+          } else {
+            setActiveWindowId(null);
+          }
+        }
+        return updated;
+      });
+    },
+    [activeWindowId]
+  );
+
+  // Maximize / unmaximize window toggling with preserved pre-maximized bounds
+  const maximizeWindow = useCallback(
+    (id: string) => {
+      setWindows((prev) =>
+        prev.map((w) => {
+          if (w.id === id) {
+            const willMaximize = !w.isMaximized;
+            return {
+              ...w,
+              isMaximized: willMaximize,
+              preMaximizedBounds: willMaximize ? { ...w.bounds } : w.preMaximizedBounds,
+              bounds: !willMaximize && w.preMaximizedBounds ? { ...w.preMaximizedBounds } : w.bounds,
+            };
+          }
+          return w;
+        })
+      );
+      focusWindow(id);
+    },
+    [focusWindow]
+  );
+
+  // Restore window: un-minimize and focus
+  const restoreWindow = useCallback(
+    (id: string) => {
+      focusWindow(id);
+    },
+    [focusWindow]
+  );
+
+  // Update window bounds with automated clamping
+  const updateWindowBounds = useCallback((id: string, partialBounds: Partial<WindowBounds>) => {
+    const { width: vw, height: vh } = getViewportDimensions();
     setWindows((prev) =>
       prev.map((w) => {
         if (w.id === id) {
-          return { ...w, zIndex: highestZIndex + 1, isMinimized: false };
+          const merged = { ...w.bounds, ...partialBounds };
+          const clamped = clampWindowBounds(merged, vw, vh);
+          return {
+            ...w,
+            bounds: clamped,
+            // If dragging/resizing, update preMaximizedBounds if not maximized
+            preMaximizedBounds: !w.isMaximized ? clamped : w.preMaximizedBounds,
+          };
         }
         return w;
       })
     );
-    setActiveWindowId(id);
-  }, [highestZIndex]);
-
-  const openWindow = useCallback((appId: NavItem, title: string) => {
-    setWindows((prev) => {
-      const existing = prev.find((w) => w.id === appId);
-      if (existing) {
-        // If it exists, focus it asynchronously after state render
-        setTimeout(() => focusWindow(existing.id), 0);
-        return prev;
-      }
-      
-      // Calculate initial position (centered with slight cascade if needed)
-      const offset = (prev.length % 5) * 40;
-      // Estimate screen size
-      const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-      const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-      
-      const newWin: WindowState = {
-        id: appId, // For now, 1 instance per app
-        appId,
-        title,
-        isMinimized: false,
-        isMaximized: false,
-        bounds: {
-          x: Math.max(10, (vw - DEFAULT_WIDTH) / 2 + offset),
-          y: Math.max(10, (vh - DEFAULT_HEIGHT) / 2 + offset - 40), // slightly higher because of dock
-          width: DEFAULT_WIDTH,
-          height: DEFAULT_HEIGHT,
-        },
-        zIndex: highestZIndex + 1,
-      };
-      
-      setHighestZIndex((z) => z + 1);
-      setActiveWindowId(appId);
-      return [...prev, newWin];
-    });
-  }, [highestZIndex, focusWindow]);
-
-  const closeWindow = useCallback((id: string) => {
-    setWindows((prev) => {
-      const remaining = prev.filter((w) => w.id !== id);
-      if (activeWindowId === id) {
-        // Focus the highest z-index window that isn't minimized
-        const unminimized = remaining.filter((w) => !w.isMinimized);
-        if (unminimized.length > 0) {
-          const topWindow = unminimized.reduce((prev, current) => 
-            (prev.zIndex > current.zIndex) ? prev : current
-          );
-          setActiveWindowId(topWindow.id);
-        } else {
-          setActiveWindowId(null);
-        }
-      }
-      return remaining;
-    });
-  }, [activeWindowId]);
-
-  const minimizeWindow = useCallback((id: string) => {
-    setWindows((prev) => prev.map((w) => w.id === id ? { ...w, isMinimized: true } : w));
-    
-    // Switch focus
-    if (activeWindowId === id) {
-       setWindows((prev) => {
-         const unminimized = prev.filter((w) => !w.isMinimized && w.id !== id);
-         if (unminimized.length > 0) {
-           const topWindow = unminimized.reduce((p, c) => (p.zIndex > c.zIndex) ? p : c);
-           setActiveWindowId(topWindow.id);
-         } else {
-           setActiveWindowId(null);
-         }
-         return prev;
-       });
-    }
-  }, [activeWindowId]);
-
-  const maximizeWindow = useCallback((id: string) => {
-    setWindows((prev) => prev.map((w) => w.id === id ? { ...w, isMaximized: !w.isMaximized } : w));
-    focusWindow(id);
-  }, [focusWindow]);
-
-  const restoreWindow = useCallback((id: string) => {
-    focusWindow(id);
-  }, [focusWindow]);
-
-  const updateWindowBounds = useCallback((id: string, bounds: Partial<WindowBounds>) => {
-    setWindows((prev) => prev.map((w) => w.id === id ? { ...w, bounds: { ...w.bounds, ...bounds } } : w));
   }, []);
 
+  // Viewport resize listener: ensure all open windows remain within usable area
+  useEffect(() => {
+    const handleResize = () => {
+      const { width: vw, height: vh } = getViewportDimensions();
+      setWindows((prev) =>
+        prev.map((w) => {
+          const clampedBounds = clampWindowBounds(w.bounds, vw, vh);
+          const clampedPreMax = w.preMaximizedBounds
+            ? clampWindowBounds(w.preMaximizedBounds, vw, vh)
+            : undefined;
+          return {
+            ...w,
+            bounds: clampedBounds,
+            preMaximizedBounds: clampedPreMax,
+          };
+        })
+      );
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Persist state safely to localStorage on change
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    try {
+      const stateToPersist = serializeDesktopState(windows, activeWindowId);
+      localStorage.setItem(DESKTOP_STATE_STORAGE_KEY, JSON.stringify(stateToPersist));
+    } catch (e) {
+      console.warn("Failed to persist desktop state:", e);
+    }
+  }, [windows, activeWindowId]);
+
   return (
-    <WindowContext.Provider value={{
-      windows,
-      activeWindowId,
-      openWindow,
-      closeWindow,
-      minimizeWindow,
-      maximizeWindow,
-      restoreWindow,
-      focusWindow,
-      updateWindowBounds
-    }}>
+    <WindowContext.Provider
+      value={{
+        windows,
+        activeWindowId,
+        openWindow,
+        closeWindow,
+        minimizeWindow,
+        maximizeWindow,
+        restoreWindow,
+        focusWindow,
+        updateWindowBounds,
+      }}
+    >
       {children}
     </WindowContext.Provider>
   );

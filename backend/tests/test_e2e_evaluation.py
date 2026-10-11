@@ -289,7 +289,7 @@ async def test_scenario_11_memory_fallback(monkeypatch):
     assert response == "Fallback response"
 
 @pytest.mark.asyncio
-async def test_scenario_12_proactive_recommendations():
+async def test_scenario_12_proactive_recommendations(monkeypatch):
     """12. Proactive recommendation retrieval without repeated generation."""
     monkeypatch.setattr(proactive_service, "_last_refresh_time", None)
     mock_llm.next_response = '{"recommendations": [{"type": "task", "title": "Buy milk", "description": "Buy milk"}]}'
