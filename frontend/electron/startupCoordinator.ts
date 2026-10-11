@@ -110,11 +110,11 @@ export class StartupCoordinator {
       }
 
       // 4. All services ready
-      this.updateState(() => ({
+      this.updateState((prev) => ({
         step: "ready",
-        ollama: { status: "ready", message: "Ollama connected" },
-        model: { status: "ready", message: `Model ${this.config.requiredModel} active` },
-        backend: { status: "ready", message: "Backend healthy and ready" },
+        ollama: { ...prev.ollama, status: "ready" },
+        model: { ...prev.model, status: "ready" },
+        backend: { ...prev.backend, status: "ready" },
         isComplete: true,
         hasError: false,
       }));
@@ -187,6 +187,10 @@ export class StartupCoordinator {
     );
 
     if (!ready) {
+      if (this.ownedOllamaProcess) {
+        await this.terminateProcessGracefully(this.ownedOllamaProcess, "Ollama");
+        this.ownedOllamaProcess = null;
+      }
       this.failStep(
         "starting_ollama",
         "Ollama failed to respond within timeout",
@@ -362,6 +366,10 @@ export class StartupCoordinator {
     );
 
     if (!ready) {
+      if (this.ownedBackendProcess) {
+        await this.terminateProcessGracefully(this.ownedBackendProcess, "backend");
+        this.ownedBackendProcess = null;
+      }
       this.failStep(
         "waiting_backend",
         "FastAPI backend failed to report healthy within timeout",
@@ -467,38 +475,72 @@ export class StartupCoordinator {
   }
 
   // --- Process Lifecycle and Cleanup ---
+  private async terminateProcessGracefully(child: ChildProcess, name: string): Promise<void> {
+    const pid = child.pid;
+    if (!pid) return;
+    console.log(`[StartupCoordinator] Stopping owned ${name} process (PID ${pid})...`);
+
+    if (process.platform === "win32") {
+      try {
+        // 1. Request graceful termination first
+        spawn("taskkill", ["/PID", String(pid), "/T"], { stdio: "ignore" });
+      } catch (err) {
+        console.warn(`[StartupCoordinator] Graceful taskkill request failed:`, err);
+      }
+
+      // 2. Poll up to 1.5s to see if process exited cleanly
+      const exited = await new Promise<boolean>((resolve) => {
+        let isGone = false;
+        const check = setInterval(() => {
+          try {
+            process.kill(pid, 0);
+          } catch {
+            isGone = true;
+            clearInterval(check);
+            resolve(true);
+          }
+        }, 100);
+        setTimeout(() => {
+          clearInterval(check);
+          resolve(isGone);
+        }, 1500);
+      });
+
+      // 3. Bounded escalation: force kill only if still alive after timeout
+      if (!exited) {
+        console.warn(`[StartupCoordinator] PID ${pid} did not exit gracefully within timeout; escalating to force kill...`);
+        try {
+          spawn("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore" });
+        } catch (err) {
+          console.error(`[StartupCoordinator] Force kill error:`, err);
+        }
+      }
+    } else {
+      try {
+        child.kill("SIGTERM");
+        setTimeout(() => {
+          try {
+            if (!child.killed) child.kill("SIGKILL");
+          } catch {}
+        }, 1500);
+      } catch (err) {
+        console.error(`Error killing ${name}:`, err);
+      }
+    }
+  }
+
   public async shutdown(): Promise<void> {
     console.log("[StartupCoordinator] Initiating shutdown for owned processes...");
 
     // 1. Terminate owned backend process
     if (this.ownedBackendProcess) {
-      try {
-        const pid = this.ownedBackendProcess.pid;
-        console.log(`[StartupCoordinator] Stopping owned backend process (PID ${pid})...`);
-        if (process.platform === "win32" && pid) {
-          spawn("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore" });
-        } else {
-          this.ownedBackendProcess.kill("SIGTERM");
-        }
-      } catch (err) {
-        console.error("Error stopping owned backend process:", err);
-      }
+      await this.terminateProcessGracefully(this.ownedBackendProcess, "backend");
       this.ownedBackendProcess = null;
     }
 
     // 2. Terminate owned Ollama process ONLY if this application spawned it
     if (this.ownedOllamaProcess) {
-      try {
-        const pid = this.ownedOllamaProcess.pid;
-        console.log(`[StartupCoordinator] Stopping owned Ollama process (PID ${pid})...`);
-        if (process.platform === "win32" && pid) {
-          spawn("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore" });
-        } else {
-          this.ownedOllamaProcess.kill("SIGTERM");
-        }
-      } catch (err) {
-        console.error("Error stopping owned Ollama process:", err);
-      }
+      await this.terminateProcessGracefully(this.ownedOllamaProcess, "Ollama");
       this.ownedOllamaProcess = null;
     }
   }

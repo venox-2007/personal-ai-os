@@ -64,19 +64,18 @@ test("electron production shell: packaged local assets load and render without V
 
     // 5. Verify window management: open app window and verify client-side interaction
     const splash = window.locator("div[role='status']");
-    try {
-      if (await splash.isVisible({ timeout: 2000 })) {
-        const hideBtn = splash.locator("button:has-text('Hide'), button:has-text('Continue')").first();
-        await hideBtn.click();
-        await splash.waitFor({ state: "hidden", timeout: 3000 });
-      }
-    } catch {
-      // Splash already complete or dismissed
+    await splash.waitFor({ state: "visible", timeout: 2500 }).catch(() => {});
+    if (await splash.isVisible()) {
+      await splash.locator("button:has-text('Hide'), button:has-text('Continue')").first().click();
+      await splash.waitFor({ state: "hidden", timeout: 3000 }).catch(() => {});
     }
 
+    const windowLocator = window.locator("div.flex.flex-col.bg-surface\\/90");
     const assistantBtn = window.locator("button[aria-label='AI Assistant']");
-    await assistantBtn.click();
-    await window.waitForSelector("div.flex.flex-col.bg-surface\\/90", { timeout: 10000 });
+    if (!(await windowLocator.isVisible().catch(() => false))) {
+      await assistantBtn.click();
+    }
+    await windowLocator.waitFor({ state: "visible", timeout: 10000 });
 
     // 6. Test disconnected chat interaction: submit a message and confirm graceful offline error notice
     const chatInput = window.locator("textarea, input[placeholder*='Ask'], input[type='text']").first();
@@ -135,15 +134,16 @@ test("electron process cleanup: closing window terminates electron processes", a
   // Close the window directly
   await window.close();
 
-  // Wait briefly for app to exit on all windows closed
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-
-  // Verify process exited
+  // Wait up to 4 seconds for app to exit on all windows closed
   let isRunning = true;
-  try {
-    process.kill(pid, 0); // throws if process does not exist
-  } catch {
-    isRunning = false;
+  for (let i = 0; i < 20; i++) {
+    try {
+      process.kill(pid, 0); // throws if process does not exist
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    } catch {
+      isRunning = false;
+      break;
+    }
   }
 
   assert.equal(isRunning, false, "Electron process must exit cleanly after window is closed");
