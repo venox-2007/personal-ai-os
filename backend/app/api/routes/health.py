@@ -7,6 +7,7 @@ from app.integrations.ollama_provider import OllamaProvider
 from app.integrations.llm_provider import ModelAvailabilityStatus
 from app.agents.registry import agent_registry
 from app.tools.registry import tool_registry
+from app.database.session import is_database_corrupted, get_database_corruption_error
 
 router = APIRouter(tags=["Health"])
 
@@ -24,14 +25,26 @@ async def get_health() -> HealthResponse:
     else:
         llm_status_str = "offline_or_unreachable"
 
+    db_corrupted = is_database_corrupted()
+    db_status = "corrupted" if db_corrupted else "healthy"
+    db_details = {"engine": "sqlite"}
+    if db_corrupted:
+        db_details["error"] = get_database_corruption_error() or "Database integrity check failed"
+        db_details["diagnostic"] = (
+            "Database integrity check failed. Writes are disabled to prevent data loss. "
+            "The database file has been preserved untouched."
+        )
+
+    overall_status = "degraded" if db_corrupted else "ok"
+
     return HealthResponse(
-        status="ok",
+        status=overall_status,
         app=settings.APP_NAME,
         version="0.1.0",
         environment=settings.APP_ENV,
         components={
             "api": ComponentHealth(status="healthy", details={"debug": settings.APP_DEBUG}),
-            "database": ComponentHealth(status="healthy", details={"engine": "sqlite"}),
+            "database": ComponentHealth(status=db_status, details=db_details),
             "llm_provider": ComponentHealth(
                 status=llm_status_str,
                 details={
