@@ -120,28 +120,19 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Open window: if already open, restore and focus it immediately
   const openWindow = useCallback(
     (appId: NavItem, title: string) => {
-      setWindows((prev) => {
-        const existing = prev.find((w) => w.id === appId);
-        if (existing) {
-          // If already open, bring to top and un-minimize synchronously
-          setHighestZIndex((prevZ) => {
-            const nextZ = prevZ + 1;
-            setTimeout(() => {
-              setWindows((curr) =>
-                curr.map((w) => (w.id === existing.id ? { ...w, zIndex: nextZ, isMinimized: false } : w))
-              );
-              setActiveWindowId(existing.id);
-            }, 0);
-            return nextZ;
-          });
-          return prev;
-        }
+      setHighestZIndex((prevZ) => {
+        const nextZ = prevZ + 1;
+        setWindows((prev) => {
+          const existing = prev.find((w) => w.id === appId);
+          if (existing) {
+            return prev.map((w) =>
+              w.id === existing.id ? { ...w, zIndex: nextZ, isMinimized: false } : w
+            );
+          }
 
-        const { width: vw, height: vh } = getViewportDimensions();
-        const newBounds = getDefaultWindowBounds(vw, vh, prev.length);
+          const { width: vw, height: vh } = getViewportDimensions();
+          const newBounds = getDefaultWindowBounds(vw, vh, prev.length);
 
-        setHighestZIndex((prevZ) => {
-          const nextZ = prevZ + 1;
           const newWin: WindowState = {
             id: appId,
             appId,
@@ -151,14 +142,10 @@ export const WindowProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             bounds: newBounds,
             zIndex: nextZ,
           };
-          setActiveWindowId(appId);
-          setTimeout(() => {
-            setWindows((curr) => (curr.some((w) => w.id === appId) ? curr : [...curr, newWin]));
-          }, 0);
-          return nextZ;
+          return [...prev, newWin];
         });
-
-        return prev;
+        setActiveWindowId(appId);
+        return nextZ;
       });
     },
     []
