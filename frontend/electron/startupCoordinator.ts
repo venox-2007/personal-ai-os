@@ -1,0 +1,514 @@
+import { spawn, ChildProcess } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import net from "node:net";
+import http from "node:http";
+import { StartupConfig, StartupProgressState, ServiceStep } from "./types";
+
+export type StartupProgressCallback = (state: StartupProgressState) => void;
+
+export class StartupCoordinator {
+  private config: StartupConfig;
+  private state: StartupProgressState;
+  private listeners: Set<StartupProgressCallback> = new Set();
+  private ownedOllamaProcess: ChildProcess | null = null;
+  private ownedBackendProcess: ChildProcess | null = null;
+  private isOrchestrating = false;
+
+  constructor(customConfig?: Partial<StartupConfig>) {
+    const rootDir = path.resolve(__dirname, "..", "..");
+    const defaultPython =
+      process.platform === "win32"
+        ? path.join(rootDir, "backend", ".venv", "Scripts", "python.exe")
+        : path.join(rootDir, "backend", ".venv", "bin", "python");
+
+    this.config = {
+      ollamaEndpoint: "http://127.0.0.1:11434",
+      requiredModel: "qwen3:4b",
+      backendHealthEndpoint: "http://127.0.0.1:8000/api/health",
+      backendHost: "127.0.0.1",
+      backendPort: 8000,
+      pythonExecutablePath: defaultPython,
+      backendWorkingDir: path.join(rootDir, "backend"),
+      readinessTimeoutMs: 30000,
+      pollIntervalMs: 500,
+      ...customConfig,
+    };
+
+    this.state = this.getInitialState();
+  }
+
+  public getInitialState(): StartupProgressState {
+    return {
+      step: "checking_ollama",
+      ollama: { status: "pending", message: "Checking Ollama status..." },
+      model: { status: "pending", message: `Waiting for ${this.config.requiredModel} check...` },
+      backend: { status: "pending", message: "Waiting for FastAPI backend check..." },
+      isComplete: false,
+      hasError: false,
+    };
+  }
+
+  public getState(): StartupProgressState {
+    return { ...this.state };
+  }
+
+  public onProgress(callback: StartupProgressCallback): () => void {
+    this.listeners.add(callback);
+    callback(this.getState());
+    return () => {
+      this.listeners.delete(callback);
+    };
+  }
+
+  private updateState(updater: (prev: StartupProgressState) => Partial<StartupProgressState>): void {
+    this.state = {
+      ...this.state,
+      ...updater(this.state),
+    };
+    for (const listener of this.listeners) {
+      try {
+        listener(this.getState());
+      } catch (err) {
+        console.error("Error in startup progress listener:", err);
+      }
+    }
+  }
+
+  public async orchestrate(): Promise<boolean> {
+    if (this.isOrchestrating) return false;
+    this.isOrchestrating = true;
+
+    try {
+      this.state = this.getInitialState();
+      this.updateState(() => ({ step: "checking_ollama" }));
+
+      // 1. Check or start Ollama
+      const ollamaReady = await this.ensureOllama();
+      if (!ollamaReady) {
+        return false;
+      }
+
+      // 2. Verify model availability
+      this.updateState(() => ({
+        step: "verifying_model",
+        model: { status: "running", message: `Verifying ${this.config.requiredModel}...` },
+      }));
+      const modelReady = await this.verifyModel();
+      if (!modelReady) {
+        return false;
+      }
+
+      // 3. Check or start FastAPI backend
+      this.updateState(() => ({
+        step: "checking_backend",
+        backend: { status: "running", message: "Checking backend readiness..." },
+      }));
+      const backendReady = await this.ensureBackend();
+      if (!backendReady) {
+        return false;
+      }
+
+      // 4. All services ready
+      this.updateState(() => ({
+        step: "ready",
+        ollama: { status: "ready", message: "Ollama connected" },
+        model: { status: "ready", message: `Model ${this.config.requiredModel} active` },
+        backend: { status: "ready", message: "Backend healthy and ready" },
+        isComplete: true,
+        hasError: false,
+      }));
+
+      return true;
+    } catch (err: any) {
+      this.failStep("failed", "Unexpected startup orchestrator failure", err?.message || String(err));
+      return false;
+    } finally {
+      this.isOrchestrating = false;
+    }
+  }
+
+  // --- Step 1: Ollama ---
+  private async ensureOllama(): Promise<boolean> {
+    const isRunning = await this.pingOllama();
+    if (isRunning) {
+      this.updateState(() => ({
+        ollama: { status: "ready", message: "Ollama is running (external)" },
+      }));
+      return true;
+    }
+
+    // Try starting Ollama
+    this.updateState(() => ({
+      step: "starting_ollama",
+      ollama: { status: "running", message: "Starting local Ollama server..." },
+    }));
+
+    const ollamaExe = this.findOllamaExecutable();
+    if (!ollamaExe) {
+      this.failStep(
+        "checking_ollama",
+        "Ollama executable not found on this computer",
+        "Please install Ollama from https://ollama.com/download or verify its installation path.",
+        "Install Ollama"
+      );
+      return false;
+    }
+
+    try {
+      this.ownedOllamaProcess = spawn(ollamaExe, ["serve"], {
+        detached: false,
+        stdio: "ignore",
+        windowsHide: true,
+      });
+
+      this.ownedOllamaProcess.on("error", (err) => {
+        console.error("Owned Ollama process error:", err);
+      });
+
+      this.ownedOllamaProcess.on("exit", (code) => {
+        console.warn(`Owned Ollama process exited with code ${code}`);
+        this.ownedOllamaProcess = null;
+      });
+    } catch (err: any) {
+      this.failStep(
+        "starting_ollama",
+        "Failed to launch Ollama process",
+        err?.message || "Could not execute Ollama executable."
+      );
+      return false;
+    }
+
+    // Wait for Ollama readiness
+    const ready = await this.waitForEndpoint(
+      () => this.pingOllama(),
+      this.config.readinessTimeoutMs,
+      this.config.pollIntervalMs
+    );
+
+    if (!ready) {
+      this.failStep(
+        "starting_ollama",
+        "Ollama failed to respond within timeout",
+        "Ollama was started but did not respond on port 11434 in time."
+      );
+      return false;
+    }
+
+    this.updateState(() => ({
+      ollama: { status: "ready", message: "Ollama started and ready (app-owned)" },
+    }));
+    return true;
+  }
+
+  public async pingOllama(): Promise<boolean> {
+    try {
+      const url = new URL("/", this.config.ollamaEndpoint);
+      const res = await this.fetchSimple(url.toString(), 1500);
+      return res.status === 200 && res.body.includes("Ollama is running");
+    } catch {
+      return false;
+    }
+  }
+
+  public findOllamaExecutable(): string | null {
+    if (this.config.ollamaExecutablePath && fs.existsSync(this.config.ollamaExecutablePath)) {
+      return this.config.ollamaExecutablePath;
+    }
+
+    const localAppData = process.env.LOCALAPPDATA;
+    const candidates: string[] = [];
+
+    if (localAppData) {
+      candidates.push(path.join(localAppData, "Programs", "Ollama", "ollama.exe"));
+    }
+    const programFiles = process.env.ProgramFiles;
+    if (programFiles) {
+      candidates.push(path.join(programFiles, "Ollama", "ollama.exe"));
+    }
+
+    for (const p of candidates) {
+      if (fs.existsSync(p)) return p;
+    }
+    return null;
+  }
+
+  // --- Step 2: Model Verification ---
+  private async verifyModel(): Promise<boolean> {
+    try {
+      const url = new URL("/api/tags", this.config.ollamaEndpoint);
+      const res = await this.fetchSimple(url.toString(), 3000);
+      if (res.status !== 200) {
+        this.failStep(
+          "verifying_model",
+          "Unable to query installed models from Ollama",
+          `Ollama returned HTTP status ${res.status} when querying /api/tags.`
+        );
+        return false;
+      }
+
+      const data = JSON.parse(res.body);
+      const models: any[] = data.models || [];
+      const hasModel = models.some(
+        (m: any) =>
+          m.name === this.config.requiredModel ||
+          m.name === `${this.config.requiredModel}:latest` ||
+          m.name?.startsWith(this.config.requiredModel)
+      );
+
+      if (!hasModel) {
+        this.failStep(
+          "verifying_model",
+          `Required AI model '${this.config.requiredModel}' is missing`,
+          `Please open a terminal and run 'ollama pull ${this.config.requiredModel}' to download the model before starting Personal AI OS.`,
+          `Run: ollama pull ${this.config.requiredModel}`
+        );
+        return false;
+      }
+
+      this.updateState(() => ({
+        model: { status: "ready", message: `Model '${this.config.requiredModel}' verified` },
+      }));
+      return true;
+    } catch (err: any) {
+      this.failStep("verifying_model", "Failed to query Ollama model library", err?.message);
+      return false;
+    }
+  }
+
+  // --- Step 3: FastAPI Backend ---
+  private async ensureBackend(): Promise<boolean> {
+    const isHealthy = await this.pingBackendHealth();
+    if (isHealthy) {
+      this.updateState(() => ({
+        backend: { status: "ready", message: "FastAPI backend already healthy (external)" },
+      }));
+      return true;
+    }
+
+    // Check for conflicting occupied port
+    const portOccupied = await this.isPortInUse(this.config.backendPort, this.config.backendHost);
+    if (portOccupied) {
+      this.failStep(
+        "starting_backend",
+        `Port ${this.config.backendPort} is already occupied by an unrecognized process`,
+        `Port ${this.config.backendPort} is in use, but does not respond to /api/health. Please close the conflicting application. Never terminates unknown processes.`
+      );
+      return false;
+    }
+
+    // Verify python virtual environment executable
+    const pythonExe = this.config.pythonExecutablePath;
+    if (!pythonExe || !fs.existsSync(pythonExe)) {
+      this.failStep(
+        "starting_backend",
+        "Python virtual environment not found for backend",
+        `Could not find Python binary at ${pythonExe}. Please set up backend/.venv first.`
+      );
+      return false;
+    }
+
+    this.updateState(() => ({
+      step: "starting_backend",
+      backend: { status: "running", message: "Starting FastAPI backend process..." },
+    }));
+
+    try {
+      this.ownedBackendProcess = spawn(
+        pythonExe,
+        [
+          "-m",
+          "uvicorn",
+          "app.main:app",
+          "--host",
+          this.config.backendHost,
+          "--port",
+          String(this.config.backendPort),
+        ],
+        {
+          cwd: this.config.backendWorkingDir,
+          detached: false,
+          stdio: "ignore",
+          windowsHide: true,
+        }
+      );
+
+      this.ownedBackendProcess.on("error", (err) => {
+        console.error("Owned backend process error:", err);
+      });
+
+      this.ownedBackendProcess.on("exit", (code) => {
+        console.warn(`Owned backend process exited with code ${code}`);
+        this.ownedBackendProcess = null;
+      });
+    } catch (err: any) {
+      this.failStep(
+        "starting_backend",
+        "Failed to launch FastAPI backend process",
+        err?.message || "Could not spawn uvicorn backend."
+      );
+      return false;
+    }
+
+    this.updateState(() => ({
+      step: "waiting_backend",
+      backend: { status: "running", message: "Waiting for /api/health readiness..." },
+    }));
+
+    const ready = await this.waitForEndpoint(
+      () => this.pingBackendHealth(),
+      this.config.readinessTimeoutMs,
+      this.config.pollIntervalMs
+    );
+
+    if (!ready) {
+      this.failStep(
+        "waiting_backend",
+        "FastAPI backend failed to report healthy within timeout",
+        "The backend process was started, but did not become ready in time."
+      );
+      return false;
+    }
+
+    this.updateState(() => ({
+      backend: { status: "ready", message: "FastAPI backend healthy and ready (app-owned)" },
+    }));
+    return true;
+  }
+
+  public async pingBackendHealth(): Promise<boolean> {
+    try {
+      const res = await this.fetchSimple(this.config.backendHealthEndpoint, 1500);
+      if (res.status !== 200) return false;
+      const data = JSON.parse(res.body);
+      return data.status === "ok";
+    } catch {
+      return false;
+    }
+  }
+
+  private isPortInUse(port: number, host: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const socket = new net.Socket();
+      socket.setTimeout(800);
+      socket.once("error", () => {
+        socket.destroy();
+        resolve(false);
+      });
+      socket.once("timeout", () => {
+        socket.destroy();
+        resolve(false);
+      });
+      socket.connect(port, host, () => {
+        socket.end();
+        resolve(true);
+      });
+    });
+  }
+
+  private failStep(
+    step: ServiceStep,
+    errorMessage: string,
+    details?: string,
+    recoveryHint?: string
+  ): void {
+    const errorDetail = details ? `${errorMessage}: ${details}` : errorMessage;
+    this.updateState(() => ({
+      step: "failed",
+      hasError: true,
+      errorMessage: errorDetail,
+      recoveryHint: recoveryHint || details,
+      [step === "verifying_model" ? "model" : step.includes("ollama") ? "ollama" : "backend"]: {
+        status: "error",
+        error: errorDetail,
+        recoveryHint,
+      },
+    }));
+  }
+
+  private async waitForEndpoint(
+    probe: () => Promise<boolean>,
+    timeoutMs: number,
+    intervalMs: number
+  ): Promise<boolean> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      if (await probe()) return true;
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+    return false;
+  }
+
+  private fetchSimple(targetUrl: string, timeoutMs: number): Promise<{ status: number; body: string }> {
+    return new Promise((resolve, reject) => {
+      const parsed = new URL(targetUrl);
+      const req = http.request(
+        {
+          hostname: parsed.hostname,
+          port: parsed.port,
+          path: parsed.pathname + parsed.search,
+          method: "GET",
+          timeout: timeoutMs,
+        },
+        (res) => {
+          let body = "";
+          res.on("data", (chunk) => (body += chunk));
+          res.on("end", () => resolve({ status: res.statusCode || 500, body }));
+        }
+      );
+
+      req.on("timeout", () => {
+        req.destroy();
+        reject(new Error("Request timed out"));
+      });
+      req.on("error", reject);
+      req.end();
+    });
+  }
+
+  // --- Process Lifecycle and Cleanup ---
+  public async shutdown(): Promise<void> {
+    console.log("[StartupCoordinator] Initiating shutdown for owned processes...");
+
+    // 1. Terminate owned backend process
+    if (this.ownedBackendProcess) {
+      try {
+        const pid = this.ownedBackendProcess.pid;
+        console.log(`[StartupCoordinator] Stopping owned backend process (PID ${pid})...`);
+        if (process.platform === "win32" && pid) {
+          spawn("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore" });
+        } else {
+          this.ownedBackendProcess.kill("SIGTERM");
+        }
+      } catch (err) {
+        console.error("Error stopping owned backend process:", err);
+      }
+      this.ownedBackendProcess = null;
+    }
+
+    // 2. Terminate owned Ollama process ONLY if this application spawned it
+    if (this.ownedOllamaProcess) {
+      try {
+        const pid = this.ownedOllamaProcess.pid;
+        console.log(`[StartupCoordinator] Stopping owned Ollama process (PID ${pid})...`);
+        if (process.platform === "win32" && pid) {
+          spawn("taskkill", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore" });
+        } else {
+          this.ownedOllamaProcess.kill("SIGTERM");
+        }
+      } catch (err) {
+        console.error("Error stopping owned Ollama process:", err);
+      }
+      this.ownedOllamaProcess = null;
+    }
+  }
+
+  // Getters for testing ownership assertions
+  public hasOwnedBackendProcess(): boolean {
+    return this.ownedBackendProcess !== null;
+  }
+
+  public hasOwnedOllamaProcess(): boolean {
+    return this.ownedOllamaProcess !== null;
+  }
+}

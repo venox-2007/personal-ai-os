@@ -50,14 +50,33 @@ test("electron production shell: packaged local assets load and render without V
     assert.equal(security.hasDesktopApi, true, "desktopApi must be bridged to window");
     assert.deepEqual(
       security.desktopApiKeys.sort(),
-      ["getAppInfo", "isElectron", "openExternalUrl", "platform"].sort(),
+      [
+        "getAppInfo",
+        "getStartupStatus",
+        "isElectron",
+        "onStartupProgress",
+        "openExternalUrl",
+        "platform",
+        "retryStartup",
+      ].sort(),
       "Preload must only expose strictly approved typed methods"
     );
 
     // 5. Verify window management: open app window and verify client-side interaction
+    const splash = window.locator("div[role='status']");
+    try {
+      if (await splash.isVisible({ timeout: 2000 })) {
+        const hideBtn = splash.locator("button:has-text('Hide'), button:has-text('Continue')").first();
+        await hideBtn.click();
+        await splash.waitFor({ state: "hidden", timeout: 3000 });
+      }
+    } catch {
+      // Splash already complete or dismissed
+    }
+
     const assistantBtn = window.locator("button[aria-label='AI Assistant']");
     await assistantBtn.click();
-    await window.waitForSelector("div.flex.flex-col.bg-surface\\/90", { timeout: 5000 });
+    await window.waitForSelector("div.flex.flex-col.bg-surface\\/90", { timeout: 10000 });
 
     // 6. Test disconnected chat interaction: submit a message and confirm graceful offline error notice
     const chatInput = window.locator("textarea, input[placeholder*='Ask'], input[type='text']").first();

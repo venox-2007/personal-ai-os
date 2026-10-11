@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell, ipcMain, IpcMainInvokeEvent } from "electron";
 import path from "node:path";
 import fs from "node:fs";
+import { StartupCoordinator } from "./startupCoordinator";
 
 // Security & Identity configuration
 const APP_ID = "com.personalaios.desktop";
@@ -18,6 +19,7 @@ if (!gotTheLock) {
 }
 
 let mainWindow: BrowserWindow | null = null;
+const startupCoordinator = new StartupCoordinator();
 
 const isDev =
   process.env.ELECTRON_IS_DEV === "true" ||
@@ -145,9 +147,37 @@ ipcMain.handle("system:open-external", async (event: IpcMainInvokeEvent, targetU
   }
 });
 
+// Startup IPC Handlers
+ipcMain.handle("startup:get-status", (event: IpcMainInvokeEvent) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents) {
+    throw new Error("Unauthorized IPC invocation");
+  }
+  return startupCoordinator.getState();
+});
+
+ipcMain.handle("startup:retry", async (event: IpcMainInvokeEvent) => {
+  if (!mainWindow || event.sender !== mainWindow.webContents) {
+    throw new Error("Unauthorized IPC invocation");
+  }
+  const success = await startupCoordinator.orchestrate();
+  return { success, error: success ? undefined : startupCoordinator.getState().errorMessage };
+});
+
 // App Lifecycle
 app.whenReady().then(() => {
   createWindow();
+
+  // Forward progress events to renderer
+  startupCoordinator.onProgress((state) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("startup:progress", state);
+    }
+  });
+
+  // Launch service startup orchestration automatically
+  startupCoordinator.orchestrate().catch((err) => {
+    console.error("[Main] Startup orchestration unhandled error:", err);
+  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -160,6 +190,14 @@ app.on("second-instance", () => {
   if (mainWindow) {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
+  }
+});
+
+app.on("before-quit", async () => {
+  try {
+    await startupCoordinator.shutdown();
+  } catch (err) {
+    console.error("[Main] Error during startupCoordinator shutdown:", err);
   }
 });
 

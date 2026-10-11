@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AppLayout } from "./layouts/AppLayout";
 import { WindowProvider } from "./lib/WindowContext";
 import { WindowManager } from "./components/WindowManager";
+import { StartupSplash } from "./components/StartupSplash";
 import { ChatMessage, AgentActivityEvent, HealthCheckData } from "./types";
 import { checkHealth, sendChatMessage, approveAction, rejectAction } from "./api/client";
 
@@ -160,6 +161,7 @@ export default function App() {
 
   return (
     <WindowProvider>
+      <StartupSplash />
       <AppLayout
         health={health}
         activities={activities}

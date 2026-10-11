@@ -16,6 +16,21 @@ const desktopApi = {
     }
     return await ipcRenderer.invoke("system:open-external", url);
   },
+  getStartupStatus: async () => {
+    return await ipcRenderer.invoke("startup:get-status");
+  },
+  onStartupProgress: (callback: (status: any) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: any) => {
+      callback(status);
+    };
+    ipcRenderer.on("startup:progress", handler);
+    return () => {
+      ipcRenderer.removeListener("startup:progress", handler);
+    };
+  },
+  retryStartup: async () => {
+    return await ipcRenderer.invoke("startup:retry");
+  },
 };
 
 // Safely bridge desktop API into the isolated window object

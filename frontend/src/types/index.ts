@@ -124,3 +124,24 @@ export interface Memory {
   metadata_json: string | null;
 }
 
+export interface ElectronDesktopApi {
+  platform: string;
+  isElectron: boolean;
+  getAppInfo: () => Promise<{
+    name: string;
+    version: string;
+    appId: string;
+    isPackaged: boolean;
+    platform: string;
+  }>;
+  openExternalUrl: (url: string) => Promise<{ success: boolean; error?: string }>;
+  getStartupStatus: () => Promise<any>;
+  onStartupProgress: (callback: (status: any) => void) => () => void;
+  retryStartup: () => Promise<{ success: boolean; error?: string }>;
+}
+
+declare global {
+  interface Window {
+    desktopApi?: ElectronDesktopApi;
+  }
+}
