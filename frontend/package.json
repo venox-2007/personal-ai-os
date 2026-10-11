@@ -12,7 +12,52 @@
     "test:qa": "node qa_visual_test.mjs",
     "build:electron": "tsc -p tsconfig.electron.json && node -e \"const fs=require('fs'); fs.writeFileSync('dist-electron/package.json', JSON.stringify({type:'commonjs'})); if (!fs.existsSync('dist-electron/resources')) fs.mkdirSync('dist-electron/resources', {recursive:true}); for (const f of fs.readdirSync('electron/resources')) fs.copyFileSync('electron/resources/'+f, 'dist-electron/resources/'+f);\"",
     "electron:dev": "node -e \"process.env.NODE_ENV='development'; require('child_process').spawn('npx', ['electron', '.'], {stdio: 'inherit', shell: true})\"",
-    "electron:preview": "npm run build && npm run build:electron && node -e \"process.env.NODE_ENV='production'; require('child_process').spawn('npx', ['electron', '.'], {stdio: 'inherit', shell: true})\""
+    "electron:preview": "npm run build && npm run build:electron && node -e \"process.env.NODE_ENV='production'; require('child_process').spawn('npx', ['electron', '.'], {stdio: 'inherit', shell: true})\"",
+    "dist": "npm run build && npm run build:electron && electron-builder --win nsis --x64",
+    "dist:dir": "npm run build && npm run build:electron && electron-builder --win --dir --x64"
+  },
+  "build": {
+    "appId": "com.personalaios.desktop",
+    "productName": "Personal AI OS",
+    "directories": {
+      "output": "release",
+      "buildResources": "electron/resources"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../backend/dist/personal_ai_backend",
+        "to": "backend",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "electron/resources/icon.ico",
+      "artifactName": "PersonalAIOS-Setup.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "deleteAppDataOnUninstall": false,
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "Personal AI OS",
+      "uninstallDisplayName": "Personal AI OS"
+    }
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -28,6 +73,7 @@
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
     "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
     "playwright": "^1.64.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",

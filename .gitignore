@@ -54,6 +54,8 @@ node_modules/
 frontend/dist/
 frontend/dist-electron/
 frontend/dist-ssr/
+frontend/release/
+release/
 frontend/.vite/
 frontend/qa_screenshots/
 *.local

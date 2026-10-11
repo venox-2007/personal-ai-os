@@ -280,24 +280,34 @@ export class StartupCoordinator {
     }
   }
 
-  public resolveBackendTarget(): { executable: string; args: string[]; isStandalone: boolean } | null {
+  public resolveBackendTarget(): { executable: string; args: string[]; cwd?: string; isStandalone: boolean } | null {
     // 1. Explicit standalone executable configuration
     if (this.config.standaloneExecutablePath && fs.existsSync(this.config.standaloneExecutablePath)) {
       return {
         executable: this.config.standaloneExecutablePath,
         args: ["--host", this.config.backendHost, "--port", String(this.config.backendPort)],
+        cwd: path.dirname(this.config.standaloneExecutablePath),
         isStandalone: true,
       };
     }
 
-    // 2. Production installed application resources (future NSIS/installed desktop app)
+    // 2. Production installed application resources (NSIS / packaged desktop app)
     const resourcesPath = (process as any).resourcesPath;
     if (resourcesPath) {
       const packagedExe = path.join(resourcesPath, "backend", "personal_ai_backend.exe");
       if (fs.existsSync(packagedExe)) {
+        const localAppData =
+          process.env.LOCALAPPDATA ||
+          (process.env.USERPROFILE ? path.join(process.env.USERPROFILE, "AppData", "Local") : "");
+        const defaultDataDir = localAppData ? path.join(localAppData, "PersonalAIOS") : undefined;
+        const args = ["--host", this.config.backendHost, "--port", String(this.config.backendPort)];
+        if (defaultDataDir) {
+          args.push("--data-dir", defaultDataDir);
+        }
         return {
           executable: packagedExe,
-          args: ["--host", this.config.backendHost, "--port", String(this.config.backendPort)],
+          args,
+          cwd: path.dirname(packagedExe),
           isStandalone: true,
         };
       }
@@ -368,7 +378,7 @@ export class StartupCoordinator {
 
     try {
       this.ownedBackendProcess = spawn(target.executable, target.args, {
-        cwd: this.config.backendWorkingDir,
+        cwd: (target as any).cwd || this.config.backendWorkingDir,
         detached: false,
         stdio: "ignore",
         windowsHide: true,

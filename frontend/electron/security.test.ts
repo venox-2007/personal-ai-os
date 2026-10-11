@@ -50,9 +50,10 @@ test("electron preload: strictly scopes exposed API without Node leaks", () => {
   assert.doesNotMatch(preloadTs, /ipcRenderer\.send\(/, "Preload must not expose arbitrary send channels");
 });
 
-test("electron artifacts: compiled main, preload and placeholder icon exist in dist-electron", () => {
+test("electron artifacts: compiled main, preload and application icon exist in dist-electron", () => {
   const distElectron = path.join(__dirname, "..", "dist-electron");
   assert.ok(fs.existsSync(path.join(distElectron, "main.js")), "dist-electron/main.js must exist");
   assert.ok(fs.existsSync(path.join(distElectron, "preload.js")), "dist-electron/preload.js must exist");
+  assert.ok(fs.existsSync(path.join(distElectron, "resources", "icon.ico")), "Application icon.ico must exist in resources");
   assert.ok(fs.existsSync(path.join(distElectron, "resources", "placeholder_icon.ico")), "Placeholder icon must exist in resources");
 });
