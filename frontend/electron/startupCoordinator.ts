@@ -280,6 +280,50 @@ export class StartupCoordinator {
     }
   }
 
+  public resolveBackendTarget(): { executable: string; args: string[]; isStandalone: boolean } | null {
+    // 1. Explicit standalone executable configuration
+    if (this.config.standaloneExecutablePath && fs.existsSync(this.config.standaloneExecutablePath)) {
+      return {
+        executable: this.config.standaloneExecutablePath,
+        args: ["--host", this.config.backendHost, "--port", String(this.config.backendPort)],
+        isStandalone: true,
+      };
+    }
+
+    // 2. Production installed application resources (future NSIS/installed desktop app)
+    const resourcesPath = (process as any).resourcesPath;
+    if (resourcesPath) {
+      const packagedExe = path.join(resourcesPath, "backend", "personal_ai_backend.exe");
+      if (fs.existsSync(packagedExe)) {
+        return {
+          executable: packagedExe,
+          args: ["--host", this.config.backendHost, "--port", String(this.config.backendPort)],
+          isStandalone: true,
+        };
+      }
+    }
+
+    // 3. Development Python virtual environment
+    const pythonExe = this.config.pythonExecutablePath;
+    if (pythonExe && fs.existsSync(pythonExe)) {
+      return {
+        executable: pythonExe,
+        args: [
+          "-m",
+          "uvicorn",
+          "app.main:app",
+          "--host",
+          this.config.backendHost,
+          "--port",
+          String(this.config.backendPort),
+        ],
+        isStandalone: false,
+      };
+    }
+
+    return null;
+  }
+
   // --- Step 3: FastAPI Backend ---
   private async ensureBackend(): Promise<boolean> {
     const isHealthy = await this.pingBackendHealth();
@@ -301,41 +345,34 @@ export class StartupCoordinator {
       return false;
     }
 
-    // Verify python virtual environment executable
-    const pythonExe = this.config.pythonExecutablePath;
-    if (!pythonExe || !fs.existsSync(pythonExe)) {
+    // Resolve executable target (standalone binary or Python venv)
+    const target = this.resolveBackendTarget();
+    if (!target) {
       this.failStep(
         "starting_backend",
         "Python virtual environment not found for backend",
-        `Could not find Python binary at ${pythonExe}. Please set up backend/.venv first.`
+        `Could not find backend executable or Python binary at ${this.config.pythonExecutablePath}. Please set up backend/.venv first.`
       );
       return false;
     }
 
     this.updateState(() => ({
       step: "starting_backend",
-      backend: { status: "running", message: "Starting FastAPI backend process..." },
+      backend: {
+        status: "running",
+        message: target.isStandalone
+          ? "Starting standalone FastAPI backend..."
+          : "Starting FastAPI backend process...",
+      },
     }));
 
     try {
-      this.ownedBackendProcess = spawn(
-        pythonExe,
-        [
-          "-m",
-          "uvicorn",
-          "app.main:app",
-          "--host",
-          this.config.backendHost,
-          "--port",
-          String(this.config.backendPort),
-        ],
-        {
-          cwd: this.config.backendWorkingDir,
-          detached: false,
-          stdio: "ignore",
-          windowsHide: true,
-        }
-      );
+      this.ownedBackendProcess = spawn(target.executable, target.args, {
+        cwd: this.config.backendWorkingDir,
+        detached: false,
+        stdio: "ignore",
+        windowsHide: true,
+      });
 
       this.ownedBackendProcess.on("error", (err) => {
         console.error("Owned backend process error:", err);
@@ -349,7 +386,7 @@ export class StartupCoordinator {
       this.failStep(
         "starting_backend",
         "Failed to launch FastAPI backend process",
-        err?.message || "Could not spawn uvicorn backend."
+        err?.message || "Could not spawn backend process."
       );
       return false;
     }

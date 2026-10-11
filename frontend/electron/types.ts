@@ -33,6 +33,7 @@ export interface StartupConfig {
   backendHost: string;
   backendPort: number;
   ollamaExecutablePath?: string;
+  standaloneExecutablePath?: string;
   pythonExecutablePath?: string;
   backendWorkingDir?: string;
   readinessTimeoutMs: number;

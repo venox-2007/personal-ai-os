@@ -3,6 +3,7 @@
 from typing import List, Union
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from app.core.paths import get_default_database_url, get_default_study_storage_dir
 
 
 class Settings(BaseSettings):
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # Database
-    DATABASE_URL: str = "sqlite:///./personal_ai_os.db"
+    DATABASE_URL: str = get_default_database_url()
 
     # LLM Provider (Local-first / Ollama)
     OLLAMA_BASE_URL: str = "http://127.0.0.1:11434"
@@ -49,7 +50,7 @@ class Settings(BaseSettings):
     FILE_AGENT_ALLOWED_ROOTS: str = ""
 
     # Study Agent / RAG Settings
-    STUDY_STORAGE_DIR: str = "./study_data"
+    STUDY_STORAGE_DIR: str = get_default_study_storage_dir()
     STUDY_EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     STUDY_CHUNK_SIZE: int = 1000
     STUDY_CHUNK_OVERLAP: int = 200
