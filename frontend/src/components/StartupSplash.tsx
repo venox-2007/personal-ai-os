@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Cpu, Server, Sparkles } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, RefreshCw, Cpu, Server, Sparkles, Copy, Check, ExternalLink } from "lucide-react";
 
 export interface ServiceDetail {
   status: "pending" | "running" | "ready" | "error";
   message?: string;
   error?: string;
   recoveryHint?: string;
+  copyCommand?: string;
+  externalUrl?: string;
 }
 
 export interface StartupProgressState {
@@ -25,12 +27,15 @@ export interface StartupProgressState {
   hasError: boolean;
   errorMessage?: string;
   recoveryHint?: string;
+  copyCommand?: string;
+  externalUrl?: string;
 }
 
 export const StartupSplash: React.FC = () => {
   const [startupState, setStartupState] = useState<StartupProgressState | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [copied, setCopied] = useState(false);
   const isDesktop = typeof window !== "undefined" && Boolean(window.desktopApi?.isElectron);
 
   useEffect(() => {
@@ -65,6 +70,37 @@ export const StartupSplash: React.FC = () => {
       console.error("Retry failed:", err);
     } finally {
       setIsRetrying(false);
+    }
+  };
+
+  const activeCopyCommand =
+    startupState.copyCommand ||
+    startupState.model.copyCommand ||
+    startupState.ollama.copyCommand ||
+    startupState.backend.copyCommand;
+
+  const activeExternalUrl =
+    startupState.externalUrl ||
+    startupState.ollama.externalUrl ||
+    startupState.model.externalUrl ||
+    startupState.backend.externalUrl;
+
+  const handleCopyCommand = async () => {
+    if (!activeCopyCommand) return;
+    try {
+      await navigator.clipboard.writeText(activeCopyCommand);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy command:", err);
+    }
+  };
+
+  const handleOpenExternal = async (url: string) => {
+    if (window.desktopApi?.openExternalUrl) {
+      await window.desktopApi.openExternalUrl(url);
+    } else {
+      window.open(url, "_blank");
     }
   };
 
@@ -137,7 +173,7 @@ export const StartupSplash: React.FC = () => {
         </div>
 
         {startupState.hasError && (
-          <div className="p-3.5 bg-rose-950/40 border border-rose-800/60 rounded-xl flex flex-col gap-2">
+          <div className="p-3.5 bg-rose-950/40 border border-rose-800/60 rounded-xl flex flex-col gap-2.5">
             <div className="flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
               <div className="text-xs text-rose-200">
@@ -149,7 +185,44 @@ export const StartupSplash: React.FC = () => {
                 )}
               </div>
             </div>
-            <div className="mt-2 flex items-center justify-between gap-2">
+
+            {/* Quick Action Helpers */}
+            {(activeCopyCommand || activeExternalUrl) && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-rose-900/30">
+                {activeCopyCommand && (
+                  <button
+                    type="button"
+                    onClick={handleCopyCommand}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 text-[11px] font-medium rounded-lg border border-gray-700/60 transition-colors shadow-sm"
+                    title={`Copy command: ${activeCopyCommand}`}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-300">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-gray-400" />
+                        <span>Copy Install Command</span>
+                      </>
+                    )}
+                  </button>
+                )}
+                {activeExternalUrl && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenExternal(activeExternalUrl)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-200 text-[11px] font-medium rounded-lg border border-cyan-800/50 transition-colors shadow-sm"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Open Official Website</span>
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="mt-1 flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={() => setIsDismissed(true)}

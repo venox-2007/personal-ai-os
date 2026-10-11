@@ -150,7 +150,9 @@ export class StartupCoordinator {
         "checking_ollama",
         "Ollama executable not found on this computer",
         "Please install Ollama from https://ollama.com/download or verify its installation path.",
-        "Install Ollama"
+        "Install Ollama from https://ollama.com/download",
+        undefined,
+        "https://ollama.com/download"
       );
       return false;
     }
@@ -265,7 +267,9 @@ export class StartupCoordinator {
           "verifying_model",
           `Required AI model '${this.config.requiredModel}' is missing`,
           `Please open a terminal and run 'ollama pull ${this.config.requiredModel}' to download the model before starting Personal AI OS.`,
-          `Run: ollama pull ${this.config.requiredModel}`
+          `Run: ollama pull ${this.config.requiredModel}`,
+          `ollama pull ${this.config.requiredModel}`,
+          `https://ollama.com/library/${this.config.requiredModel.split(":")[0]}`
         );
         return false;
       }
@@ -467,18 +471,25 @@ export class StartupCoordinator {
     step: ServiceStep,
     errorMessage: string,
     details?: string,
-    recoveryHint?: string
+    recoveryHint?: string,
+    copyCommand?: string,
+    externalUrl?: string
   ): void {
     const errorDetail = details ? `${errorMessage}: ${details}` : errorMessage;
+    const targetKey = step === "verifying_model" ? "model" : step.includes("ollama") ? "ollama" : "backend";
     this.updateState(() => ({
       step: "failed",
       hasError: true,
       errorMessage: errorDetail,
       recoveryHint: recoveryHint || details,
-      [step === "verifying_model" ? "model" : step.includes("ollama") ? "ollama" : "backend"]: {
+      copyCommand,
+      externalUrl,
+      [targetKey]: {
         status: "error",
         error: errorDetail,
-        recoveryHint,
+        recoveryHint: recoveryHint || details,
+        copyCommand,
+        externalUrl,
       },
     }));
   }

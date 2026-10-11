@@ -29,5 +29,17 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    """Initializes tables in database."""
+    """Initializes tables in database and verifies file integrity."""
+    from sqlalchemy import text
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("PRAGMA integrity_check")).fetchone()
+            status = result[0] if result else "unknown"
+            if status != "ok":
+                import logging
+                logging.getLogger("personal_ai_os").warning(f"SQLite PRAGMA integrity_check warning: {status}")
+    except Exception as e:
+        import logging
+        logging.getLogger("personal_ai_os").warning(f"Could not verify database integrity PRAGMA: {e}")
+
     Base.metadata.create_all(bind=engine)

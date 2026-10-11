@@ -63,6 +63,10 @@ test("startup coordinator: detects missing model and sets recovery hint without 
     assert.equal(state.model.status, "error");
     assert.match(state.errorMessage || "", /Required.*model.*missing/i);
     assert.match(state.recoveryHint || "", /ollama pull qwen3:4b/i);
+    assert.equal(state.copyCommand, "ollama pull qwen3:4b");
+    assert.equal(state.externalUrl, "https://ollama.com/library/qwen3");
+    assert.equal(state.model.copyCommand, "ollama pull qwen3:4b");
+    assert.equal(state.model.externalUrl, "https://ollama.com/library/qwen3");
   } finally {
     await new Promise<void>((resolve) => mockServer.close(() => resolve()));
   }

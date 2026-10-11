@@ -13,6 +13,8 @@ export interface ServiceDetail {
   message?: string;
   error?: string;
   recoveryHint?: string;
+  copyCommand?: string;
+  externalUrl?: string;
 }
 
 export interface StartupProgressState {
@@ -24,6 +26,8 @@ export interface StartupProgressState {
   hasError: boolean;
   errorMessage?: string;
   recoveryHint?: string;
+  copyCommand?: string;
+  externalUrl?: string;
 }
 
 export interface StartupConfig {
