@@ -3,12 +3,16 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "node --test src/lib/*.test.ts",
-    "test:qa": "node qa_visual_test.mjs"
+    "test": "node --test src/lib/*.test.ts electron/*.test.ts",
+    "test:qa": "node qa_visual_test.mjs",
+    "build:electron": "tsc -p tsconfig.electron.json && node -e \"const fs=require('fs'); fs.writeFileSync('dist-electron/package.json', JSON.stringify({type:'commonjs'})); if (!fs.existsSync('dist-electron/resources')) fs.mkdirSync('dist-electron/resources', {recursive:true}); for (const f of fs.readdirSync('electron/resources')) fs.copyFileSync('electron/resources/'+f, 'dist-electron/resources/'+f);\"",
+    "electron:dev": "node -e \"process.env.NODE_ENV='development'; require('child_process').spawn('npx', ['electron', '.'], {stdio: 'inherit', shell: true})\"",
+    "electron:preview": "npm run build && npm run build:electron && node -e \"process.env.NODE_ENV='production'; require('child_process').spawn('npx', ['electron', '.'], {stdio: 'inherit', shell: true})\""
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -23,6 +27,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.20",
+    "electron": "^44.7.0",
     "playwright": "^1.64.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",

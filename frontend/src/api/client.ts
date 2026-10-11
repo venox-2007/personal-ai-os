@@ -20,9 +20,35 @@ export interface ApprovalExecutionPayload {
   conversation_id?: string;
 }
 
+export function getApiBaseUrl(): string {
+  if (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.VITE_API_BASE_URL) {
+    return String(import.meta.env.VITE_API_BASE_URL).replace(/\/+$/, "");
+  }
+  if (typeof window !== "undefined" && (window.location.protocol === "file:" || (window as any).desktopApi?.isElectron)) {
+    return "http://127.0.0.1:8000";
+  }
+  return "";
+}
+
+function resolveUrl(path: string): string {
+  const base = getApiBaseUrl();
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return base ? `${base}${cleanPath}` : cleanPath;
+}
+
+const originalFetch = window.fetch.bind(window);
+const apiFetch: typeof fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+  if (typeof input === "string") {
+    if (input.startsWith("/api") || input.startsWith("/health")) {
+      return originalFetch(resolveUrl(input), init);
+    }
+  }
+  return originalFetch(input, init);
+};
+
 export async function checkHealth(): Promise<HealthCheckData | null> {
   try {
-    const res = await fetch("/health");
+    const res = await apiFetch("/health");
     if (!res.ok) throw new Error("Health check failed");
     return await res.json();
   } catch (error) {
@@ -35,7 +61,7 @@ export async function sendChatMessage(
   message: string,
   conversationId?: string
 ): Promise<ChatResponsePayload> {
-  const res = await fetch("/api/chat", {
+  const res = await apiFetch("/api/chat", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -58,7 +84,7 @@ export async function approveAction(
   approvalId: string,
   reason?: string
 ): Promise<ApprovalExecutionPayload> {
-  const res = await fetch(`/api/approvals/${approvalId}/approve`, {
+  const res = await apiFetch(`/api/approvals/${approvalId}/approve`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -78,7 +104,7 @@ export async function rejectAction(
   approvalId: string,
   reason?: string
 ): Promise<ApprovalExecutionPayload> {
-  const res = await fetch(`/api/approvals/${approvalId}/reject`, {
+  const res = await apiFetch(`/api/approvals/${approvalId}/reject`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -97,7 +123,7 @@ export async function rejectAction(
 export async function fetchApprovals(status?: string): Promise<ApprovalRequestData[]> {
   try {
     const url = status ? `/api/approvals?status=${status}` : "/api/approvals";
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     if (!res.ok) return [];
     return await res.json();
   } catch {
@@ -107,7 +133,7 @@ export async function fetchApprovals(status?: string): Promise<ApprovalRequestDa
 
 export async function fetchAgents(): Promise<any[]> {
   try {
-    const res = await fetch("/api/agents");
+    const res = await apiFetch("/api/agents");
     if (!res.ok) return [];
     return await res.json();
   } catch {
@@ -117,7 +143,7 @@ export async function fetchAgents(): Promise<any[]> {
 
 export async function fetchTools(): Promise<any[]> {
   try {
-    const res = await fetch("/api/tools");
+    const res = await apiFetch("/api/tools");
     if (!res.ok) return [];
     return await res.json();
   } catch {
@@ -127,7 +153,7 @@ export async function fetchTools(): Promise<any[]> {
 
 export async function fetchMemoryStats(): Promise<Record<string, any>> {
   try {
-    const res = await fetch("/api/memory/stats");
+    const res = await apiFetch("/api/memory/stats");
     if (!res.ok) return {};
     return await res.json();
   } catch {
@@ -136,7 +162,7 @@ export async function fetchMemoryStats(): Promise<Record<string, any>> {
 }
 
 export async function searchFiles(directory: string, pattern: string = "*.*"): Promise<any> {
-  const res = await fetch("/api/files/search", {
+  const res = await apiFetch("/api/files/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ directory, pattern }),
@@ -149,7 +175,7 @@ export async function searchFiles(directory: string, pattern: string = "*.*"): P
 }
 
 export async function getFileMetadata(file_path: string): Promise<any> {
-  const res = await fetch("/api/files/metadata", {
+  const res = await apiFetch("/api/files/metadata", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file_path }),
@@ -162,7 +188,7 @@ export async function getFileMetadata(file_path: string): Promise<any> {
 }
 
 export async function readFileContent(file_path: string, start_line: number = 1, end_line?: number): Promise<any> {
-  const res = await fetch("/api/files/read", {
+  const res = await apiFetch("/api/files/read", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file_path, start_line, end_line }),
@@ -176,7 +202,7 @@ export async function readFileContent(file_path: string, start_line: number = 1,
 
 // Study API
 export async function studyIngest(file_path: string): Promise<any> {
-  const res = await fetch("/api/study/ingest", {
+  const res = await apiFetch("/api/study/ingest", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file_path }),
@@ -189,7 +215,7 @@ export async function studyIngest(file_path: string): Promise<any> {
 }
 
 export async function studySearch(query: string, top_k: number = 5): Promise<any> {
-  const res = await fetch("/api/study/search", {
+  const res = await apiFetch("/api/study/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, top_k }),
@@ -202,7 +228,7 @@ export async function studySearch(query: string, top_k: number = 5): Promise<any
 }
 
 export async function studyListDocuments(): Promise<any> {
-  const res = await fetch("/api/study/list");
+  const res = await apiFetch("/api/study/list");
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to list documents");
@@ -211,7 +237,7 @@ export async function studyListDocuments(): Promise<any> {
 }
 
 export async function studyRemoveDocument(document_id: string): Promise<any> {
-  const res = await fetch("/api/study/remove", {
+  const res = await apiFetch("/api/study/remove", {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ document_id }),
@@ -224,7 +250,7 @@ export async function studyRemoveDocument(document_id: string): Promise<any> {
 }
 
 export async function studyAsk(question: string): Promise<any> {
-  const res = await fetch("/api/study/ask", {
+  const res = await apiFetch("/api/study/ask", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ question }),
@@ -238,7 +264,7 @@ export async function studyAsk(question: string): Promise<any> {
 
 // Coding API
 export async function codingListRepo(repo_path: string): Promise<any> {
-  const res = await fetch("/api/coding/list", {
+  const res = await apiFetch("/api/coding/list", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repo_path }),
@@ -248,7 +274,7 @@ export async function codingListRepo(repo_path: string): Promise<any> {
 }
 
 export async function codingMetadata(repo_path: string): Promise<any> {
-  const res = await fetch("/api/coding/metadata", {
+  const res = await apiFetch("/api/coding/metadata", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repo_path }),
@@ -258,7 +284,7 @@ export async function codingMetadata(repo_path: string): Promise<any> {
 }
 
 export async function codingSearch(repo_path: string, pattern: string): Promise<any> {
-  const res = await fetch("/api/coding/search", {
+  const res = await apiFetch("/api/coding/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repo_path, pattern }),
@@ -268,7 +294,7 @@ export async function codingSearch(repo_path: string, pattern: string): Promise<
 }
 
 export async function codingReadFile(file_path: string): Promise<any> {
-  const res = await fetch("/api/coding/read", {
+  const res = await apiFetch("/api/coding/read", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file_path }),
@@ -278,7 +304,7 @@ export async function codingReadFile(file_path: string): Promise<any> {
 }
 
 export async function codingGitStatus(repo_path: string): Promise<any> {
-  const res = await fetch("/api/coding/git_status", {
+  const res = await apiFetch("/api/coding/git_status", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repo_path }),
@@ -288,7 +314,7 @@ export async function codingGitStatus(repo_path: string): Promise<any> {
 }
 
 export async function codingGitLog(repo_path: string): Promise<any> {
-  const res = await fetch("/api/coding/git_log", {
+  const res = await apiFetch("/api/coding/git_log", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repo_path }),
@@ -298,7 +324,7 @@ export async function codingGitLog(repo_path: string): Promise<any> {
 }
 
 export async function codingProposeEdit(file_path: string, expected_old_content: string, new_content: string, reason: string): Promise<any> {
-  const res = await fetch("/api/coding/propose_edit", {
+  const res = await apiFetch("/api/coding/propose_edit", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ file_path, expected_old_content, new_content, reason }),
@@ -308,7 +334,7 @@ export async function codingProposeEdit(file_path: string, expected_old_content:
 }
 
 export async function codingGitDiff(repo_path: string): Promise<any> {
-  const res = await fetch("/api/coding/git_diff", {
+  const res = await apiFetch("/api/coding/git_diff", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ repo_path }),
@@ -319,7 +345,7 @@ export async function codingGitDiff(repo_path: string): Promise<any> {
 
 // Research API
 export async function researchSearch(query: string, max_results: number = 5): Promise<any> {
-  const res = await fetch("/api/research/search", {
+  const res = await apiFetch("/api/research/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ query, max_results }),
@@ -329,7 +355,7 @@ export async function researchSearch(query: string, max_results: number = 5): Pr
 }
 
 export async function researchFetch(url: string): Promise<any> {
-  const res = await fetch("/api/research/fetch", {
+  const res = await apiFetch("/api/research/fetch", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),
@@ -340,21 +366,19 @@ export async function researchFetch(url: string): Promise<any> {
 
 // Calendar API
 export async function calendarUpcoming(limit: number = 10): Promise<any[]> {
-  const res = await fetch(`/api/calendar/upcoming?limit=${limit}`);
+  const res = await apiFetch(`/api/calendar/upcoming?limit=${limit}`);
   if (!res.ok) throw new Error("Failed to fetch upcoming events");
   return res.json();
 }
 
 export async function calendarListEvents(start: string, end: string): Promise<any[]> {
-  const res = await fetch(`/api/calendar/events?start_datetime=${encodeURIComponent(start)}&end_datetime=${encodeURIComponent(end)}`);
+  const res = await apiFetch(`/api/calendar/events?start_datetime=${encodeURIComponent(start)}&end_datetime=${encodeURIComponent(end)}`);
   if (!res.ok) throw new Error("Failed to list events");
   return res.json();
 }
 
-
-
 export const fetchActiveWorkflows = async (): Promise<any[]> => {
-  const response = await fetch('/api/workflows');
+  const response = await apiFetch('/api/workflows');
   if (!response.ok) {
     throw new Error(`Failed to fetch workflows: ${response.statusText}`);
   }
@@ -362,14 +386,13 @@ export const fetchActiveWorkflows = async (): Promise<any[]> => {
   return data.filter((wf: any) => ["PENDING", "RUNNING", "WAITING_APPROVAL"].includes(wf.status));
 };
 
-
 // Memory API
 export const fetchMemories = async (type?: string, q?: string, includeArchived?: boolean): Promise<{items: any[], total: number}> => {
   let url = "/api/memory";
   if (q) {
     url = `/api/memory/search?q=${encodeURIComponent(q)}`;
     if (includeArchived) url += "&include_archived=true";
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     if (!res.ok) throw new Error("Failed to search memories");
     const items = await res.json();
     return { items, total: items.length };
@@ -378,14 +401,14 @@ export const fetchMemories = async (type?: string, q?: string, includeArchived?:
     if (type && type !== "ALL") params.append("memory_type", type);
     if (includeArchived) params.append("include_archived", "true");
     if (params.toString()) url += `?${params.toString()}`;
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     if (!res.ok) throw new Error("Failed to fetch memories");
     return res.json();
   }
 };
 
 export const createMemory = async (data: any) => {
-  const res = await fetch("/api/memory", {
+  const res = await apiFetch("/api/memory", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -398,7 +421,7 @@ export const createMemory = async (data: any) => {
 };
 
 export const updateMemory = async (id: string, data: any) => {
-  const res = await fetch(`/api/memory/${id}`, {
+  const res = await apiFetch(`/api/memory/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -411,20 +434,19 @@ export const updateMemory = async (id: string, data: any) => {
 };
 
 export const deleteMemory = async (id: string) => {
-  const res = await fetch(`/api/memory/${id}`, { method: "DELETE" });
+  const res = await apiFetch(`/api/memory/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete memory");
   return res.json();
 };
 
 export const archiveMemory = async (id: string) => {
-  const res = await fetch(`/api/memory/${id}/archive`, { method: "POST" });
+  const res = await apiFetch(`/api/memory/${id}/archive`, { method: "POST" });
   if (!res.ok) throw new Error("Failed to archive memory");
   return res.json();
 };
 
 export const restoreMemory = async (id: string) => {
-  const res = await fetch(`/api/memory/${id}/restore`, { method: "POST" });
+  const res = await apiFetch(`/api/memory/${id}/restore`, { method: "POST" });
   if (!res.ok) throw new Error("Failed to restore memory");
   return res.json();
 };
-
