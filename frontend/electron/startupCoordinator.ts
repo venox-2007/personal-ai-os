@@ -299,10 +299,12 @@ export class StartupCoordinator {
         const localAppData =
           process.env.LOCALAPPDATA ||
           (process.env.USERPROFILE ? path.join(process.env.USERPROFILE, "AppData", "Local") : "");
-        const defaultDataDir = localAppData ? path.join(localAppData, "PersonalAIOS") : undefined;
+        const targetDataDir =
+          process.env.PERSONAL_AI_DATA_DIR ||
+          (localAppData ? path.join(localAppData, "PersonalAIOS") : undefined);
         const args = ["--host", this.config.backendHost, "--port", String(this.config.backendPort)];
-        if (defaultDataDir) {
-          args.push("--data-dir", defaultDataDir);
+        if (targetDataDir) {
+          args.push("--data-dir", targetDataDir);
         }
         return {
           executable: packagedExe,
